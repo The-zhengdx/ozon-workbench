@@ -271,24 +271,28 @@ func init() {
 	shopDescCurrencyCode := shopFields[2].Descriptor()
 	// shop.CurrencyCodeValidator is a validator for the "currency_code" field. It is called by the builders before save.
 	shop.CurrencyCodeValidator = shopDescCurrencyCode.Validators[0].(func(string) error)
+	// shopDescWarehousesMock is the schema descriptor for warehouses_mock field.
+	shopDescWarehousesMock := shopFields[6].Descriptor()
+	// shop.DefaultWarehousesMock holds the default value on creation for the warehouses_mock field.
+	shop.DefaultWarehousesMock = shopDescWarehousesMock.Default.(bool)
 	// shopDescIsDefault is the schema descriptor for is_default field.
-	shopDescIsDefault := shopFields[5].Descriptor()
+	shopDescIsDefault := shopFields[7].Descriptor()
 	// shop.DefaultIsDefault holds the default value on creation for the is_default field.
 	shop.DefaultIsDefault = shopDescIsDefault.Default.(bool)
 	// shopDescArchived is the schema descriptor for archived field.
-	shopDescArchived := shopFields[6].Descriptor()
+	shopDescArchived := shopFields[8].Descriptor()
 	// shop.DefaultArchived holds the default value on creation for the archived field.
 	shop.DefaultArchived = shopDescArchived.Default.(bool)
 	// shopDescLastTestMessage is the schema descriptor for last_test_message field.
-	shopDescLastTestMessage := shopFields[9].Descriptor()
+	shopDescLastTestMessage := shopFields[11].Descriptor()
 	// shop.LastTestMessageValidator is a validator for the "last_test_message" field. It is called by the builders before save.
 	shop.LastTestMessageValidator = shopDescLastTestMessage.Validators[0].(func(string) error)
 	// shopDescCreatedAt is the schema descriptor for created_at field.
-	shopDescCreatedAt := shopFields[10].Descriptor()
+	shopDescCreatedAt := shopFields[12].Descriptor()
 	// shop.DefaultCreatedAt holds the default value on creation for the created_at field.
 	shop.DefaultCreatedAt = shopDescCreatedAt.Default.(func() time.Time)
 	// shopDescUpdatedAt is the schema descriptor for updated_at field.
-	shopDescUpdatedAt := shopFields[11].Descriptor()
+	shopDescUpdatedAt := shopFields[13].Descriptor()
 	// shop.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	shop.DefaultUpdatedAt = shopDescUpdatedAt.Default.(func() time.Time)
 	// shop.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

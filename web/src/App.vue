@@ -84,8 +84,8 @@ function onSwitch(value: number) {
             <span v-if="shop.current && !shop.current.currency_code" class="status warm currency-pill">币种未核实</span>
           </div>
           <div class="demo">
-            <span class="dot" :class="{ bad: !shop.mock }"></span>
-            {{ shop.mock ? "模拟 Ozon · 类目可同步" : "官方 Ozon · 类目可同步" }}
+            <span v-if="shop.mock" class="status warm">模拟模式 · 仓库是内置示例</span>
+            <span v-else class="status ready">真实 Ozon · {{ shop.proxyLabel }}</span>
           </div>
         </header>
         <section class="content">

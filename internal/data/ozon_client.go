@@ -3,10 +3,14 @@ package data
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"sync"
@@ -16,28 +20,42 @@ import (
 
 	"ozon-workbench/internal/biz"
 	"ozon-workbench/internal/catalog"
+	"ozon-workbench/internal/conf"
 )
+
+const ozonUserAgent = "ozon-workbench"
 
 // OzonClient calls api-seller.ozon.ru with per-shop Client-Id and Api-Key headers.
 type OzonClient struct {
 	baseURL    string
 	httpClient *http.Client
+	mock       bool
+	proxyMode  string
+	proxyFn    func(*http.Request) (*url.URL, error)
+	proxyLabel string
 	rps        int
 	retryBase  time.Duration
 	mu         sync.Mutex
 	limits     map[string]*rate.Limiter
 }
 
-func NewOzonClient(baseURL string, timeout time.Duration, rps int, mock bool) *OzonClient {
+func NewOzonClient(baseURL string, timeout time.Duration, rps int, mock bool, proxy string) (*OzonClient, error) {
 	if rps <= 0 {
 		rps = 10
 	}
 	if timeout <= 0 {
 		timeout = 45 * time.Second
 	}
-	transport := http.DefaultTransport
+	mode, proxyFn, label, err := resolveProxy(proxy)
+	if err != nil {
+		return nil, err
+	}
+	var transport http.RoundTripper
 	if mock {
+		// Samples are returned only when mock is explicitly on. A real call never falls back to them.
 		transport = mockTransport{}
+	} else {
+		transport = newOzonTransport(proxyFn, timeout)
 	}
 	return &OzonClient{
 		baseURL: strings.TrimRight(baseURL, "/"),
@@ -45,10 +63,83 @@ func NewOzonClient(baseURL string, timeout time.Duration, rps int, mock bool) *O
 			Timeout:   timeout,
 			Transport: transport,
 		},
-		rps:       rps,
-		retryBase: time.Second,
-		limits:    map[string]*rate.Limiter{},
+		mock:       mock,
+		proxyMode:  mode,
+		proxyFn:    proxyFn,
+		proxyLabel: label,
+		rps:        rps,
+		retryBase:  time.Second,
+		limits:     map[string]*rate.Limiter{},
+	}, nil
+}
+
+// Mocked reports whether this client returns built-in samples instead of calling Ozon.
+func (c *OzonClient) Mocked() bool { return c.mock }
+
+// newOzonTransport forces HTTP/1.1 and accepts TLS 1.2 renegotiation.
+// Renegotiation is not defined for TLS 1.3 or HTTP/2. Go defaults to RenegotiateNever,
+// which answers a HelloRequest with a no_renegotiation alert and surfaces to net/http as EOF.
+// The Seller edge prefers TLS 1.3 and does not renegotiate, but a TLS 1.2 path — including
+// some TUN/fake-ip proxies — can request it more than once after the POST is sent.
+// RenegotiateOnceAsClient rejects the second request, so the client allows repeated
+// server-initiated renegotiation. crypto/tls still requires the leaf certificate to stay the same.
+func newOzonTransport(proxy func(*http.Request) (*url.URL, error), timeout time.Duration) *http.Transport {
+	if timeout <= 0 {
+		timeout = 45 * time.Second
 	}
+	return &http.Transport{
+		Proxy: proxy,
+		DialContext: (&net.Dialer{
+			Timeout:   15 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		ForceAttemptHTTP2: false,
+		// A non-nil map is the documented way to keep HTTP/2 disabled.
+		TLSNextProto: map[string]func(string, *tls.Conn) http.RoundTripper{},
+		TLSClientConfig: &tls.Config{
+			MinVersion:    tls.VersionTLS12,
+			NextProtos:    []string{"http/1.1"},
+			Renegotiation: tls.RenegotiateFreelyAsClient,
+		},
+		MaxIdleConns:          10,
+		MaxIdleConnsPerHost:   2,
+		IdleConnTimeout:       30 * time.Second,
+		TLSHandshakeTimeout:   15 * time.Second,
+		ResponseHeaderTimeout: timeout,
+		ExpectContinueTimeout: time.Second,
+	}
+}
+
+func resolveProxy(raw string) (mode string, fn func(*http.Request) (*url.URL, error), label string, err error) {
+	mode, err = conf.NormalizeOzonProxy(raw)
+	if err != nil {
+		return "", nil, "", err
+	}
+	switch mode {
+	case "direct":
+		return "direct", nil, "direct（强制直连，已忽略 HTTP_PROXY/HTTPS_PROXY/ALL_PROXY）", nil
+	case "env":
+		return "env", http.ProxyFromEnvironment, "", nil
+	default:
+		u, perr := url.Parse(mode)
+		if perr != nil {
+			return "", nil, "", perr
+		}
+		return "url", http.ProxyURL(u), "url（" + redactProxyURL(u) + "）", nil
+	}
+}
+
+func redactProxyURL(u *url.URL) string {
+	clone := *u
+	if clone.User != nil {
+		name := clone.User.Username()
+		if _, ok := clone.User.Password(); ok {
+			clone.User = url.UserPassword(name, "REDACTED")
+		} else {
+			clone.User = url.User(name)
+		}
+	}
+	return clone.String()
 }
 
 func (c *OzonClient) limiter(clientID string) *rate.Limiter {
@@ -75,8 +166,13 @@ func (e *ozonStatusError) Error() string {
 }
 
 func (c *OzonClient) do(ctx context.Context, path string, cred biz.OzonCred, payload any, out any) error {
-	if strings.TrimSpace(cred.ClientID) == "" || strings.TrimSpace(cred.APIKey) == "" {
+	cred.ClientID = strings.TrimSpace(cred.ClientID)
+	cred.APIKey = strings.TrimSpace(cred.APIKey)
+	if cred.ClientID == "" || cred.APIKey == "" {
 		return fmt.Errorf("Ozon 凭证不完整")
+	}
+	if strings.ContainsAny(cred.ClientID, "\r\n") || strings.ContainsAny(cred.APIKey, "\r\n") {
+		return fmt.Errorf("Client ID 或 API Key 含有换行，请重新粘贴，不要带首尾空格或换行")
 	}
 	raw, err := json.Marshal(payload)
 	if err != nil {
@@ -92,25 +188,40 @@ func (c *OzonClient) do(ctx context.Context, path string, cred biz.OzonCred, pay
 			return err
 		}
 		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/json")
+		req.Header.Set("User-Agent", ozonUserAgent)
+		// Client-Id is the seller id as a decimal string. Ozon rejects a non-integer value with HTTP 400.
 		req.Header.Set("Client-Id", cred.ClientID)
 		req.Header.Set("Api-Key", cred.APIKey)
 		resp, err := c.httpClient.Do(req)
 		if err != nil {
-			return fmt.Errorf("连接 Ozon 失败: %w", err)
+			last = err
+			if attempt < 2 && retryableTransport(err) {
+				c.httpClient.CloseIdleConnections()
+				if err := c.sleep(ctx, c.backoff(attempt, "")); err != nil {
+					return err
+				}
+				continue
+			}
+			return c.transportError(err)
 		}
 		body, readErr := io.ReadAll(io.LimitReader(resp.Body, 8<<20))
 		resp.Body.Close()
 		if readErr != nil {
-			return readErr
+			last = readErr
+			if attempt < 2 && retryableTransport(readErr) {
+				c.httpClient.CloseIdleConnections()
+				if err := c.sleep(ctx, c.backoff(attempt, "")); err != nil {
+					return err
+				}
+				continue
+			}
+			return c.transportError(readErr)
 		}
 		if resp.StatusCode == http.StatusTooManyRequests && attempt < 2 {
 			last = &ozonStatusError{Status: resp.StatusCode, Message: extractOzonMessage(body)}
-			timer := time.NewTimer(c.backoff(attempt, resp.Header.Get("Retry-After")))
-			select {
-			case <-ctx.Done():
-				timer.Stop()
-				return ctx.Err()
-			case <-timer.C:
+			if err := c.sleep(ctx, c.backoff(attempt, resp.Header.Get("Retry-After"))); err != nil {
+				return err
 			}
 			continue
 		}
@@ -128,9 +239,105 @@ func (c *OzonClient) do(ctx context.Context, path string, cred biz.OzonCred, pay
 		return nil
 	}
 	if last != nil {
-		return last
+		if _, ok := last.(*ozonStatusError); ok {
+			return last
+		}
+		return c.transportError(last)
 	}
 	return fmt.Errorf("Ozon 请求失败")
+}
+
+func (c *OzonClient) sleep(ctx context.Context, d time.Duration) error {
+	timer := time.NewTimer(d)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
+}
+
+func retryableTransport(err error) bool {
+	if err == nil || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return false
+	}
+	if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
+		return true
+	}
+	var ne net.Error
+	if errors.As(err, &ne) && ne.Timeout() {
+		return true
+	}
+	msg := err.Error()
+	for _, needle := range []string{
+		"connection reset",
+		"connection refused",
+		"broken pipe",
+		"server sent GOAWAY",
+		"client connection lost",
+		"use of closed network connection",
+		"TLS handshake timeout",
+		"no renegotiation",
+		"EOF",
+	} {
+		if strings.Contains(msg, needle) {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *OzonClient) transportError(err error) error {
+	return fmt.Errorf("无法连接 Ozon（%s，不是 Ozon 返回的业务错误）。当前代理：%s。请按 README「连接 Ozon 失败 / EOF」用 curl 对比直连和代理。若 DNS 得到 198.18.0.0/15 或 2001:2::，这是 TUN/fake-ip，代理规则里的 DIRECT 仍会拦截 TLS，Go 不读取代理软件的分流列表。原始错误：%v", classifyTransport(err), c.describeProxy(), err)
+}
+
+func classifyTransport(err error) string {
+	msg := err.Error()
+	switch {
+	case strings.Contains(msg, "no renegotiation"):
+		return "TLS 1.2 重协商被拒绝"
+	case errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) || strings.Contains(msg, "EOF"):
+		return "网络、代理或 TLS 中断：连接在收到 HTTP 响应前被关闭（EOF）。TLS 1.2 路径上的重协商，或大陆直连被重置，都会变成这个错误"
+	case strings.Contains(msg, "connection reset"):
+		return "连接被重置"
+	case strings.Contains(msg, "connection refused"):
+		return "连接被拒绝（代理地址或端口可能不对）"
+	case strings.Contains(strings.ToLower(msg), "tls") || strings.Contains(msg, "handshake"):
+		return "TLS 握手失败"
+	case strings.Contains(strings.ToLower(msg), "timeout") || strings.Contains(msg, "Timeout"):
+		return "连接超时"
+	default:
+		return "网络或代理失败"
+	}
+}
+
+func (c *OzonClient) describeProxy() string {
+	switch c.proxyMode {
+	case "direct":
+		return c.proxyLabel
+	case "env":
+		if c.proxyFn == nil {
+			return "env"
+		}
+		req, err := http.NewRequest(http.MethodPost, c.baseURL+"/v2/warehouse/list", nil)
+		if err != nil {
+			return "env"
+		}
+		u, err := c.proxyFn(req)
+		if err != nil {
+			return "env（读取代理环境变量失败）"
+		}
+		if u == nil {
+			return "env（未设置 HTTP_PROXY/HTTPS_PROXY/ALL_PROXY，实际直连）"
+		}
+		return "env（" + redactProxyURL(u) + "；只认环境变量，不认代理软件的分流规则）"
+	default:
+		if c.proxyLabel != "" {
+			return c.proxyLabel
+		}
+		return c.proxyMode
+	}
 }
 
 func (c *OzonClient) backoff(attempt int, retryAfter string) time.Duration {

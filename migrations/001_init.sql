@@ -194,6 +194,8 @@ CREATE TABLE public.shops (
     currency_code character varying,
     api_key_ciphertext bytea NOT NULL,
     warehouses jsonb,
+    warehouses_synced_at timestamp with time zone,
+    warehouses_mock boolean DEFAULT false NOT NULL,
     is_default boolean DEFAULT false NOT NULL,
     archived boolean DEFAULT false NOT NULL,
     last_tested_at timestamp with time zone,

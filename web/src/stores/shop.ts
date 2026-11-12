@@ -10,7 +10,8 @@ export const useShopStore = defineStore("shop", {
   state: () => ({
     shops: [] as Shop[],
     currentShopId: null as number | null,
-    mock: true,
+    mock: false,
+    proxy: "direct",
     loading: false,
     error: "",
   }),
@@ -21,6 +22,11 @@ export const useShopStore = defineStore("shop", {
     current(state): Shop | undefined {
       return state.shops.find((shop) => shop.id === state.currentShopId && !shop.archived);
     },
+    proxyLabel(state): string {
+      if (!state.proxy || state.proxy === "direct") return "直连（忽略 HTTP_PROXY）";
+      if (state.proxy === "env") return "代理跟随环境变量";
+      return `代理 ${state.proxy}`;
+    },
   },
   actions: {
     async load() {
@@ -30,6 +36,7 @@ export const useShopStore = defineStore("shop", {
         const [shops, meta] = await Promise.all([listShops(), fetchMeta()]);
         this.shops = shops;
         this.mock = meta.mock;
+        this.proxy = meta.proxy || "direct";
         this.ensureCurrent();
       } catch (error) {
         this.error = error instanceof Error ? error.message : "店铺列表加载失败";

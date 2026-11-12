@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"ozon-workbench/internal/biz"
 	"ozon-workbench/internal/catalog"
 )
 
@@ -58,10 +59,16 @@ func mockWarehouses(body []byte) *http.Response {
 	if req.Limit < 1 || req.Limit > 200 {
 		return mockJSON(http.StatusBadRequest, map[string]any{"code": 3, "message": "limit 必须在 1 到 200 之间"})
 	}
-	all := []map[string]any{
-		{"warehouse_id": int64(20605650762000), "name": "莫斯科一号仓", "status": "created", "is_rfbs": false, "warehouse_type": "FBS"},
-		{"warehouse_id": int64(20605650762001), "name": "圣彼得堡转运仓", "status": "created", "is_rfbs": true, "warehouse_type": "RFBS"},
-		{"warehouse_id": int64(20605650762002), "name": "喀山备货仓", "status": "created", "is_rfbs": false, "warehouse_type": "FBS"},
+	samples := biz.SampleWarehouses()
+	all := make([]map[string]any, len(samples))
+	for i, item := range samples {
+		all[i] = map[string]any{
+			"warehouse_id":   item.WarehouseID,
+			"name":           item.Name,
+			"status":         item.Status,
+			"is_rfbs":        item.IsRFBS,
+			"warehouse_type": item.WarehouseType,
+		}
 	}
 	start := 0
 	if req.Cursor != "" {

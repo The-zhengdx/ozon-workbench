@@ -23,6 +23,10 @@ const (
 	FieldAPIKeyCiphertext = "api_key_ciphertext"
 	// FieldWarehouses holds the string denoting the warehouses field in the database.
 	FieldWarehouses = "warehouses"
+	// FieldWarehousesSyncedAt holds the string denoting the warehouses_synced_at field in the database.
+	FieldWarehousesSyncedAt = "warehouses_synced_at"
+	// FieldWarehousesMock holds the string denoting the warehouses_mock field in the database.
+	FieldWarehousesMock = "warehouses_mock"
 	// FieldIsDefault holds the string denoting the is_default field in the database.
 	FieldIsDefault = "is_default"
 	// FieldArchived holds the string denoting the archived field in the database.
@@ -49,6 +53,8 @@ var Columns = []string{
 	FieldCurrencyCode,
 	FieldAPIKeyCiphertext,
 	FieldWarehouses,
+	FieldWarehousesSyncedAt,
+	FieldWarehousesMock,
 	FieldIsDefault,
 	FieldArchived,
 	FieldLastTestedAt,
@@ -75,6 +81,8 @@ var (
 	ClientIDValidator func(string) error
 	// CurrencyCodeValidator is a validator for the "currency_code" field. It is called by the builders before save.
 	CurrencyCodeValidator func(string) error
+	// DefaultWarehousesMock holds the default value on creation for the "warehouses_mock" field.
+	DefaultWarehousesMock bool
 	// DefaultIsDefault holds the default value on creation for the "is_default" field.
 	DefaultIsDefault bool
 	// DefaultArchived holds the default value on creation for the "archived" field.
@@ -110,6 +118,16 @@ func ByClientID(opts ...sql.OrderTermOption) OrderOption {
 // ByCurrencyCode orders the results by the currency_code field.
 func ByCurrencyCode(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCurrencyCode, opts...).ToFunc()
+}
+
+// ByWarehousesSyncedAt orders the results by the warehouses_synced_at field.
+func ByWarehousesSyncedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldWarehousesSyncedAt, opts...).ToFunc()
+}
+
+// ByWarehousesMock orders the results by the warehouses_mock field.
+func ByWarehousesMock(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldWarehousesMock, opts...).ToFunc()
 }
 
 // ByIsDefault orders the results by the is_default field.

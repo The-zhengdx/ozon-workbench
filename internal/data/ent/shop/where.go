@@ -74,6 +74,16 @@ func APIKeyCiphertext(v []byte) predicate.Shop {
 	return predicate.Shop(sql.FieldEQ(FieldAPIKeyCiphertext, v))
 }
 
+// WarehousesSyncedAt applies equality check predicate on the "warehouses_synced_at" field. It's identical to WarehousesSyncedAtEQ.
+func WarehousesSyncedAt(v time.Time) predicate.Shop {
+	return predicate.Shop(sql.FieldEQ(FieldWarehousesSyncedAt, v))
+}
+
+// WarehousesMock applies equality check predicate on the "warehouses_mock" field. It's identical to WarehousesMockEQ.
+func WarehousesMock(v bool) predicate.Shop {
+	return predicate.Shop(sql.FieldEQ(FieldWarehousesMock, v))
+}
+
 // IsDefault applies equality check predicate on the "is_default" field. It's identical to IsDefaultEQ.
 func IsDefault(v bool) predicate.Shop {
 	return predicate.Shop(sql.FieldEQ(FieldIsDefault, v))
@@ -362,6 +372,66 @@ func WarehousesIsNil() predicate.Shop {
 // WarehousesNotNil applies the NotNil predicate on the "warehouses" field.
 func WarehousesNotNil() predicate.Shop {
 	return predicate.Shop(sql.FieldNotNull(FieldWarehouses))
+}
+
+// WarehousesSyncedAtEQ applies the EQ predicate on the "warehouses_synced_at" field.
+func WarehousesSyncedAtEQ(v time.Time) predicate.Shop {
+	return predicate.Shop(sql.FieldEQ(FieldWarehousesSyncedAt, v))
+}
+
+// WarehousesSyncedAtNEQ applies the NEQ predicate on the "warehouses_synced_at" field.
+func WarehousesSyncedAtNEQ(v time.Time) predicate.Shop {
+	return predicate.Shop(sql.FieldNEQ(FieldWarehousesSyncedAt, v))
+}
+
+// WarehousesSyncedAtIn applies the In predicate on the "warehouses_synced_at" field.
+func WarehousesSyncedAtIn(vs ...time.Time) predicate.Shop {
+	return predicate.Shop(sql.FieldIn(FieldWarehousesSyncedAt, vs...))
+}
+
+// WarehousesSyncedAtNotIn applies the NotIn predicate on the "warehouses_synced_at" field.
+func WarehousesSyncedAtNotIn(vs ...time.Time) predicate.Shop {
+	return predicate.Shop(sql.FieldNotIn(FieldWarehousesSyncedAt, vs...))
+}
+
+// WarehousesSyncedAtGT applies the GT predicate on the "warehouses_synced_at" field.
+func WarehousesSyncedAtGT(v time.Time) predicate.Shop {
+	return predicate.Shop(sql.FieldGT(FieldWarehousesSyncedAt, v))
+}
+
+// WarehousesSyncedAtGTE applies the GTE predicate on the "warehouses_synced_at" field.
+func WarehousesSyncedAtGTE(v time.Time) predicate.Shop {
+	return predicate.Shop(sql.FieldGTE(FieldWarehousesSyncedAt, v))
+}
+
+// WarehousesSyncedAtLT applies the LT predicate on the "warehouses_synced_at" field.
+func WarehousesSyncedAtLT(v time.Time) predicate.Shop {
+	return predicate.Shop(sql.FieldLT(FieldWarehousesSyncedAt, v))
+}
+
+// WarehousesSyncedAtLTE applies the LTE predicate on the "warehouses_synced_at" field.
+func WarehousesSyncedAtLTE(v time.Time) predicate.Shop {
+	return predicate.Shop(sql.FieldLTE(FieldWarehousesSyncedAt, v))
+}
+
+// WarehousesSyncedAtIsNil applies the IsNil predicate on the "warehouses_synced_at" field.
+func WarehousesSyncedAtIsNil() predicate.Shop {
+	return predicate.Shop(sql.FieldIsNull(FieldWarehousesSyncedAt))
+}
+
+// WarehousesSyncedAtNotNil applies the NotNil predicate on the "warehouses_synced_at" field.
+func WarehousesSyncedAtNotNil() predicate.Shop {
+	return predicate.Shop(sql.FieldNotNull(FieldWarehousesSyncedAt))
+}
+
+// WarehousesMockEQ applies the EQ predicate on the "warehouses_mock" field.
+func WarehousesMockEQ(v bool) predicate.Shop {
+	return predicate.Shop(sql.FieldEQ(FieldWarehousesMock, v))
+}
+
+// WarehousesMockNEQ applies the NEQ predicate on the "warehouses_mock" field.
+func WarehousesMockNEQ(v bool) predicate.Shop {
+	return predicate.Shop(sql.FieldNEQ(FieldWarehousesMock, v))
 }
 
 // IsDefaultEQ applies the EQ predicate on the "is_default" field.

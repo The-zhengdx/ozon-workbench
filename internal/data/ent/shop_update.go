@@ -102,6 +102,40 @@ func (su *ShopUpdate) ClearWarehouses() *ShopUpdate {
 	return su
 }
 
+// SetWarehousesSyncedAt sets the "warehouses_synced_at" field.
+func (su *ShopUpdate) SetWarehousesSyncedAt(t time.Time) *ShopUpdate {
+	su.mutation.SetWarehousesSyncedAt(t)
+	return su
+}
+
+// SetNillableWarehousesSyncedAt sets the "warehouses_synced_at" field if the given value is not nil.
+func (su *ShopUpdate) SetNillableWarehousesSyncedAt(t *time.Time) *ShopUpdate {
+	if t != nil {
+		su.SetWarehousesSyncedAt(*t)
+	}
+	return su
+}
+
+// ClearWarehousesSyncedAt clears the value of the "warehouses_synced_at" field.
+func (su *ShopUpdate) ClearWarehousesSyncedAt() *ShopUpdate {
+	su.mutation.ClearWarehousesSyncedAt()
+	return su
+}
+
+// SetWarehousesMock sets the "warehouses_mock" field.
+func (su *ShopUpdate) SetWarehousesMock(b bool) *ShopUpdate {
+	su.mutation.SetWarehousesMock(b)
+	return su
+}
+
+// SetNillableWarehousesMock sets the "warehouses_mock" field if the given value is not nil.
+func (su *ShopUpdate) SetNillableWarehousesMock(b *bool) *ShopUpdate {
+	if b != nil {
+		su.SetWarehousesMock(*b)
+	}
+	return su
+}
+
 // SetIsDefault sets the "is_default" field.
 func (su *ShopUpdate) SetIsDefault(b bool) *ShopUpdate {
 	su.mutation.SetIsDefault(b)
@@ -300,6 +334,15 @@ func (su *ShopUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if su.mutation.WarehousesCleared() {
 		_spec.ClearField(shop.FieldWarehouses, field.TypeJSON)
 	}
+	if value, ok := su.mutation.WarehousesSyncedAt(); ok {
+		_spec.SetField(shop.FieldWarehousesSyncedAt, field.TypeTime, value)
+	}
+	if su.mutation.WarehousesSyncedAtCleared() {
+		_spec.ClearField(shop.FieldWarehousesSyncedAt, field.TypeTime)
+	}
+	if value, ok := su.mutation.WarehousesMock(); ok {
+		_spec.SetField(shop.FieldWarehousesMock, field.TypeBool, value)
+	}
 	if value, ok := su.mutation.IsDefault(); ok {
 		_spec.SetField(shop.FieldIsDefault, field.TypeBool, value)
 	}
@@ -416,6 +459,40 @@ func (suo *ShopUpdateOne) AppendWarehouses(s []schema.Warehouse) *ShopUpdateOne 
 // ClearWarehouses clears the value of the "warehouses" field.
 func (suo *ShopUpdateOne) ClearWarehouses() *ShopUpdateOne {
 	suo.mutation.ClearWarehouses()
+	return suo
+}
+
+// SetWarehousesSyncedAt sets the "warehouses_synced_at" field.
+func (suo *ShopUpdateOne) SetWarehousesSyncedAt(t time.Time) *ShopUpdateOne {
+	suo.mutation.SetWarehousesSyncedAt(t)
+	return suo
+}
+
+// SetNillableWarehousesSyncedAt sets the "warehouses_synced_at" field if the given value is not nil.
+func (suo *ShopUpdateOne) SetNillableWarehousesSyncedAt(t *time.Time) *ShopUpdateOne {
+	if t != nil {
+		suo.SetWarehousesSyncedAt(*t)
+	}
+	return suo
+}
+
+// ClearWarehousesSyncedAt clears the value of the "warehouses_synced_at" field.
+func (suo *ShopUpdateOne) ClearWarehousesSyncedAt() *ShopUpdateOne {
+	suo.mutation.ClearWarehousesSyncedAt()
+	return suo
+}
+
+// SetWarehousesMock sets the "warehouses_mock" field.
+func (suo *ShopUpdateOne) SetWarehousesMock(b bool) *ShopUpdateOne {
+	suo.mutation.SetWarehousesMock(b)
+	return suo
+}
+
+// SetNillableWarehousesMock sets the "warehouses_mock" field if the given value is not nil.
+func (suo *ShopUpdateOne) SetNillableWarehousesMock(b *bool) *ShopUpdateOne {
+	if b != nil {
+		suo.SetWarehousesMock(*b)
+	}
 	return suo
 }
 
@@ -646,6 +723,15 @@ func (suo *ShopUpdateOne) sqlSave(ctx context.Context) (_node *Shop, err error) 
 	}
 	if suo.mutation.WarehousesCleared() {
 		_spec.ClearField(shop.FieldWarehouses, field.TypeJSON)
+	}
+	if value, ok := suo.mutation.WarehousesSyncedAt(); ok {
+		_spec.SetField(shop.FieldWarehousesSyncedAt, field.TypeTime, value)
+	}
+	if suo.mutation.WarehousesSyncedAtCleared() {
+		_spec.ClearField(shop.FieldWarehousesSyncedAt, field.TypeTime)
+	}
+	if value, ok := suo.mutation.WarehousesMock(); ok {
+		_spec.SetField(shop.FieldWarehousesMock, field.TypeBool, value)
 	}
 	if value, ok := suo.mutation.IsDefault(); ok {
 		_spec.SetField(shop.FieldIsDefault, field.TypeBool, value)

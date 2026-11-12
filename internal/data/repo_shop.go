@@ -52,14 +52,18 @@ func (r *shopRepo) GetByClientID(ctx context.Context, clientID string) (*biz.Sho
 }
 
 func (r *shopRepo) Create(ctx context.Context, shop *biz.Shop) (*biz.Shop, error) {
-	row, err := r.db.Shop.Create().
+	create := r.db.Shop.Create().
 		SetName(shop.Name).
 		SetClientID(shop.ClientID).
 		SetAPIKeyCiphertext(shop.APIKeyCiphertext).
 		SetWarehouses(schemaWarehouses(shop.Warehouses)).
+		SetWarehousesMock(shop.WarehousesMock).
 		SetIsDefault(shop.IsDefault).
-		SetArchived(shop.Archived).
-		Save(ctx)
+		SetArchived(shop.Archived)
+	if shop.WarehousesSyncedAt != nil {
+		create.SetWarehousesSyncedAt(*shop.WarehousesSyncedAt)
+	}
+	row, err := create.Save(ctx)
 	if err != nil {
 		if ent.IsConstraintError(err) {
 			return nil, &biz.Error{Status: 409, Reason: "CLIENT_ID_EXISTS", Message: "这个 Client ID 已有店铺记录。", Fields: map[string]string{"client_id": "这个 Client ID 已有店铺记录。"}}
@@ -70,17 +74,23 @@ func (r *shopRepo) Create(ctx context.Context, shop *biz.Shop) (*biz.Shop, error
 }
 
 func (r *shopRepo) Update(ctx context.Context, shop *biz.Shop) (*biz.Shop, error) {
-	row, err := r.db.Shop.UpdateOneID(shop.ID).
+	update := r.db.Shop.UpdateOneID(shop.ID).
 		SetName(shop.Name).
 		SetClientID(shop.ClientID).
 		SetAPIKeyCiphertext(shop.APIKeyCiphertext).
 		SetWarehouses(schemaWarehouses(shop.Warehouses)).
+		SetWarehousesMock(shop.WarehousesMock).
 		SetIsDefault(shop.IsDefault).
 		SetArchived(shop.Archived).
 		SetNillableLastTestedAt(shop.LastTestedAt).
 		SetNillableLastTestOk(shop.LastTestOK).
-		SetNillableLastTestMessage(shop.LastTestMessage).
-		Save(ctx)
+		SetNillableLastTestMessage(shop.LastTestMessage)
+	if shop.WarehousesSyncedAt != nil {
+		update.SetWarehousesSyncedAt(*shop.WarehousesSyncedAt)
+	} else {
+		update.ClearWarehousesSyncedAt()
+	}
+	row, err := update.Save(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return nil, &biz.Error{Status: 404, Reason: "NOT_FOUND", Message: "店铺不存在。"}
@@ -114,19 +124,21 @@ func (r *shopRepo) SetDefault(ctx context.Context, id int) error {
 
 func toBizShop(row *ent.Shop) *biz.Shop {
 	return &biz.Shop{
-		ID:               row.ID,
-		Name:             row.Name,
-		ClientID:         row.ClientID,
-		CurrencyCode:     row.CurrencyCode,
-		APIKeyCiphertext: append([]byte(nil), row.APIKeyCiphertext...),
-		Warehouses:       bizWarehouses(row.Warehouses),
-		IsDefault:        row.IsDefault,
-		Archived:         row.Archived,
-		LastTestedAt:     row.LastTestedAt,
-		LastTestOK:       row.LastTestOk,
-		LastTestMessage:  row.LastTestMessage,
-		CreatedAt:        row.CreatedAt,
-		UpdatedAt:        row.UpdatedAt,
+		ID:                 row.ID,
+		Name:               row.Name,
+		ClientID:           row.ClientID,
+		CurrencyCode:       row.CurrencyCode,
+		APIKeyCiphertext:   append([]byte(nil), row.APIKeyCiphertext...),
+		Warehouses:         bizWarehouses(row.Warehouses),
+		WarehousesSyncedAt: row.WarehousesSyncedAt,
+		WarehousesMock:     row.WarehousesMock,
+		IsDefault:          row.IsDefault,
+		Archived:           row.Archived,
+		LastTestedAt:       row.LastTestedAt,
+		LastTestOK:         row.LastTestOk,
+		LastTestMessage:    row.LastTestMessage,
+		CreatedAt:          row.CreatedAt,
+		UpdatedAt:          row.UpdatedAt,
 	}
 }
 

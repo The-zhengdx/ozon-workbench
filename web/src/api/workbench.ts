@@ -10,7 +10,7 @@ import type {
 } from "./types";
 
 export async function fetchMeta() {
-  const { data } = await http.get<{ service: string; mock: boolean; phase: number }>("/meta");
+  const { data } = await http.get<{ service: string; mock: boolean; proxy: string; phase: number }>("/meta");
   return data;
 }
 

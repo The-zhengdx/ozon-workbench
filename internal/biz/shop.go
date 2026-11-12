@@ -27,7 +27,7 @@ func (uc *ShopUsecase) List(ctx context.Context) ([]ShopView, error) {
 	}
 	out := make([]ShopView, 0, len(rows))
 	for _, row := range rows {
-		out = append(out, row.View())
+		out = append(out, uc.present(row))
 	}
 	return out, nil
 }
@@ -37,7 +37,7 @@ func (uc *ShopUsecase) Get(ctx context.Context, id int) (ShopView, error) {
 	if err != nil {
 		return ShopView{}, err
 	}
-	return row.View(), nil
+	return uc.present(row), nil
 }
 
 // Create stores a shop. Currency is left unknown. A connectivity check runs after the row exists.
@@ -108,8 +108,7 @@ func (uc *ShopUsecase) Update(ctx context.Context, id int, name, clientID, apiKe
 		return nil, err
 	}
 	if !credentialsChanged {
-		view := updated.View()
-		return &ShopWriteResult{Shop: view}, nil
+		return &ShopWriteResult{Shop: uc.present(updated)}, nil
 	}
 	return uc.finishWithTest(ctx, updated)
 }
@@ -144,7 +143,7 @@ func (uc *ShopUsecase) Archive(ctx context.Context, id int) (ShopView, error) {
 			return ShopView{}, err
 		}
 	}
-	return updated.View(), nil
+	return uc.present(updated), nil
 }
 
 func (uc *ShopUsecase) Restore(ctx context.Context, id int) (ShopView, error) {
@@ -164,7 +163,7 @@ func (uc *ShopUsecase) Restore(ctx context.Context, id int) (ShopView, error) {
 	if err != nil {
 		return ShopView{}, err
 	}
-	return updated.View(), nil
+	return uc.present(updated), nil
 }
 
 func (uc *ShopUsecase) SetDefault(ctx context.Context, id int) (ShopView, error) {
@@ -182,7 +181,7 @@ func (uc *ShopUsecase) SetDefault(ctx context.Context, id int) (ShopView, error)
 	if err != nil {
 		return ShopView{}, err
 	}
-	return current.View(), nil
+	return uc.present(current), nil
 }
 
 // TestConnection calls POST /v2/warehouse/list and stores every page.
@@ -196,8 +195,7 @@ func (uc *ShopUsecase) TestConnection(ctx context.Context, id int) (*ShopWriteRe
 
 func (uc *ShopUsecase) finishWithTest(ctx context.Context, shop *Shop) (*ShopWriteResult, error) {
 	result, tested := uc.test(ctx, shop)
-	view := tested.View()
-	return &ShopWriteResult{Shop: view, Connection: result}, nil
+	return &ShopWriteResult{Shop: uc.present(tested), Connection: result}, nil
 }
 
 func (uc *ShopUsecase) test(ctx context.Context, shop *Shop) (*ConnectionResult, *Shop) {
@@ -231,9 +229,22 @@ func (uc *ShopUsecase) test(ctx context.Context, shop *Shop) (*ConnectionResult,
 	warehouses, err := uc.ozon.ListWarehouses(ctx, OzonCred{ClientID: shop.ClientID, APIKey: plain})
 	if err != nil {
 		msg := err.Error()
-		if len(msg) > 2000 {
-			msg = msg[:2000]
+		if !uc.ozon.Mocked() {
+			kept, changed := StripUntrustedWarehouses(shop.Warehouses, shop.WarehousesMock)
+			if changed {
+				shop.Warehouses = kept
+				shop.WarehousesMock = false
+				if len(kept) == 0 {
+					shop.WarehousesSyncedAt = nil
+					msg += " 已清除之前保存的模拟仓库（莫斯科一号仓等），那些不是 Ozon 返回的仓库。"
+				} else {
+					msg += " 已去掉其中的模拟仓库；其余是上次成功同步的结果，本次没有更新。"
+				}
+			} else if len(shop.Warehouses) > 0 {
+				msg += " 下面仍是上次成功同步的仓库，本次没有更新。"
+			}
 		}
+		msg = trimRunes(msg, 2000)
 		ok := false
 		shop.LastTestOK = &ok
 		shop.LastTestMessage = &msg
@@ -248,9 +259,14 @@ func (uc *ShopUsecase) test(ctx context.Context, shop *Shop) (*ConnectionResult,
 		warehouses = []Warehouse{}
 	}
 	shop.Warehouses = warehouses
+	shop.WarehousesMock = uc.ozon.Mocked()
+	synced := now
+	shop.WarehousesSyncedAt = &synced
 	ok := true
 	msg := "连接成功，已同步仓库。"
-	if len(warehouses) == 0 {
+	if uc.ozon.Mocked() {
+		msg = "模拟模式：已写入内置示例仓库，不是该店铺在 Ozon 上的仓库。"
+	} else if len(warehouses) == 0 {
 		msg = "连接成功，该账号没有可访问的仓库。"
 	}
 	shop.LastTestOK = &ok
@@ -261,6 +277,34 @@ func (uc *ShopUsecase) test(ctx context.Context, shop *Shop) (*ConnectionResult,
 		saved = shop
 	}
 	return &ConnectionResult{OK: true, Message: msg, WarehouseCount: len(warehouses)}, saved
+}
+
+// present hides built-in sample warehouses unless this process is explicitly in mock mode.
+func (uc *ShopUsecase) present(shop *Shop) ShopView {
+	if shop == nil {
+		return ShopView{Warehouses: []Warehouse{}}
+	}
+	if !uc.ozon.Mocked() {
+		kept, changed := StripUntrustedWarehouses(shop.Warehouses, shop.WarehousesMock)
+		if changed {
+			cp := *shop
+			cp.Warehouses = kept
+			cp.WarehousesMock = false
+			if len(kept) == 0 {
+				cp.WarehousesSyncedAt = nil
+			}
+			shop = &cp
+		}
+	}
+	return shop.View()
+}
+
+func trimRunes(msg string, max int) string {
+	r := []rune(msg)
+	if len(r) <= max {
+		return msg
+	}
+	return string(r[:max])
 }
 
 // Credentials decrypts a shop key for other usecases. The plaintext must not be logged.

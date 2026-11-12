@@ -4451,26 +4451,28 @@ func (m *DictionarySnapshotMutation) ResetEdge(name string) error {
 // ShopMutation represents an operation that mutates the Shop nodes in the graph.
 type ShopMutation struct {
 	config
-	op                 Op
-	typ                string
-	id                 *int
-	name               *string
-	client_id          *string
-	currency_code      *string
-	api_key_ciphertext *[]byte
-	warehouses         *[]schema.Warehouse
-	appendwarehouses   []schema.Warehouse
-	is_default         *bool
-	archived           *bool
-	last_tested_at     *time.Time
-	last_test_ok       *bool
-	last_test_message  *string
-	created_at         *time.Time
-	updated_at         *time.Time
-	clearedFields      map[string]struct{}
-	done               bool
-	oldValue           func(context.Context) (*Shop, error)
-	predicates         []predicate.Shop
+	op                   Op
+	typ                  string
+	id                   *int
+	name                 *string
+	client_id            *string
+	currency_code        *string
+	api_key_ciphertext   *[]byte
+	warehouses           *[]schema.Warehouse
+	appendwarehouses     []schema.Warehouse
+	warehouses_synced_at *time.Time
+	warehouses_mock      *bool
+	is_default           *bool
+	archived             *bool
+	last_tested_at       *time.Time
+	last_test_ok         *bool
+	last_test_message    *string
+	created_at           *time.Time
+	updated_at           *time.Time
+	clearedFields        map[string]struct{}
+	done                 bool
+	oldValue             func(context.Context) (*Shop, error)
+	predicates           []predicate.Shop
 }
 
 var _ ent.Mutation = (*ShopMutation)(nil)
@@ -4791,6 +4793,91 @@ func (m *ShopMutation) ResetWarehouses() {
 	m.warehouses = nil
 	m.appendwarehouses = nil
 	delete(m.clearedFields, shop.FieldWarehouses)
+}
+
+// SetWarehousesSyncedAt sets the "warehouses_synced_at" field.
+func (m *ShopMutation) SetWarehousesSyncedAt(t time.Time) {
+	m.warehouses_synced_at = &t
+}
+
+// WarehousesSyncedAt returns the value of the "warehouses_synced_at" field in the mutation.
+func (m *ShopMutation) WarehousesSyncedAt() (r time.Time, exists bool) {
+	v := m.warehouses_synced_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldWarehousesSyncedAt returns the old "warehouses_synced_at" field's value of the Shop entity.
+// If the Shop object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ShopMutation) OldWarehousesSyncedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldWarehousesSyncedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldWarehousesSyncedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWarehousesSyncedAt: %w", err)
+	}
+	return oldValue.WarehousesSyncedAt, nil
+}
+
+// ClearWarehousesSyncedAt clears the value of the "warehouses_synced_at" field.
+func (m *ShopMutation) ClearWarehousesSyncedAt() {
+	m.warehouses_synced_at = nil
+	m.clearedFields[shop.FieldWarehousesSyncedAt] = struct{}{}
+}
+
+// WarehousesSyncedAtCleared returns if the "warehouses_synced_at" field was cleared in this mutation.
+func (m *ShopMutation) WarehousesSyncedAtCleared() bool {
+	_, ok := m.clearedFields[shop.FieldWarehousesSyncedAt]
+	return ok
+}
+
+// ResetWarehousesSyncedAt resets all changes to the "warehouses_synced_at" field.
+func (m *ShopMutation) ResetWarehousesSyncedAt() {
+	m.warehouses_synced_at = nil
+	delete(m.clearedFields, shop.FieldWarehousesSyncedAt)
+}
+
+// SetWarehousesMock sets the "warehouses_mock" field.
+func (m *ShopMutation) SetWarehousesMock(b bool) {
+	m.warehouses_mock = &b
+}
+
+// WarehousesMock returns the value of the "warehouses_mock" field in the mutation.
+func (m *ShopMutation) WarehousesMock() (r bool, exists bool) {
+	v := m.warehouses_mock
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldWarehousesMock returns the old "warehouses_mock" field's value of the Shop entity.
+// If the Shop object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ShopMutation) OldWarehousesMock(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldWarehousesMock is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldWarehousesMock requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWarehousesMock: %w", err)
+	}
+	return oldValue.WarehousesMock, nil
+}
+
+// ResetWarehousesMock resets all changes to the "warehouses_mock" field.
+func (m *ShopMutation) ResetWarehousesMock() {
+	m.warehouses_mock = nil
 }
 
 // SetIsDefault sets the "is_default" field.
@@ -5118,7 +5205,7 @@ func (m *ShopMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ShopMutation) Fields() []string {
-	fields := make([]string, 0, 12)
+	fields := make([]string, 0, 14)
 	if m.name != nil {
 		fields = append(fields, shop.FieldName)
 	}
@@ -5133,6 +5220,12 @@ func (m *ShopMutation) Fields() []string {
 	}
 	if m.warehouses != nil {
 		fields = append(fields, shop.FieldWarehouses)
+	}
+	if m.warehouses_synced_at != nil {
+		fields = append(fields, shop.FieldWarehousesSyncedAt)
+	}
+	if m.warehouses_mock != nil {
+		fields = append(fields, shop.FieldWarehousesMock)
 	}
 	if m.is_default != nil {
 		fields = append(fields, shop.FieldIsDefault)
@@ -5173,6 +5266,10 @@ func (m *ShopMutation) Field(name string) (ent.Value, bool) {
 		return m.APIKeyCiphertext()
 	case shop.FieldWarehouses:
 		return m.Warehouses()
+	case shop.FieldWarehousesSyncedAt:
+		return m.WarehousesSyncedAt()
+	case shop.FieldWarehousesMock:
+		return m.WarehousesMock()
 	case shop.FieldIsDefault:
 		return m.IsDefault()
 	case shop.FieldArchived:
@@ -5206,6 +5303,10 @@ func (m *ShopMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldAPIKeyCiphertext(ctx)
 	case shop.FieldWarehouses:
 		return m.OldWarehouses(ctx)
+	case shop.FieldWarehousesSyncedAt:
+		return m.OldWarehousesSyncedAt(ctx)
+	case shop.FieldWarehousesMock:
+		return m.OldWarehousesMock(ctx)
 	case shop.FieldIsDefault:
 		return m.OldIsDefault(ctx)
 	case shop.FieldArchived:
@@ -5263,6 +5364,20 @@ func (m *ShopMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetWarehouses(v)
+		return nil
+	case shop.FieldWarehousesSyncedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWarehousesSyncedAt(v)
+		return nil
+	case shop.FieldWarehousesMock:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWarehousesMock(v)
 		return nil
 	case shop.FieldIsDefault:
 		v, ok := value.(bool)
@@ -5349,6 +5464,9 @@ func (m *ShopMutation) ClearedFields() []string {
 	if m.FieldCleared(shop.FieldWarehouses) {
 		fields = append(fields, shop.FieldWarehouses)
 	}
+	if m.FieldCleared(shop.FieldWarehousesSyncedAt) {
+		fields = append(fields, shop.FieldWarehousesSyncedAt)
+	}
 	if m.FieldCleared(shop.FieldLastTestedAt) {
 		fields = append(fields, shop.FieldLastTestedAt)
 	}
@@ -5377,6 +5495,9 @@ func (m *ShopMutation) ClearField(name string) error {
 		return nil
 	case shop.FieldWarehouses:
 		m.ClearWarehouses()
+		return nil
+	case shop.FieldWarehousesSyncedAt:
+		m.ClearWarehousesSyncedAt()
 		return nil
 	case shop.FieldLastTestedAt:
 		m.ClearLastTestedAt()
@@ -5409,6 +5530,12 @@ func (m *ShopMutation) ResetField(name string) error {
 		return nil
 	case shop.FieldWarehouses:
 		m.ResetWarehouses()
+		return nil
+	case shop.FieldWarehousesSyncedAt:
+		m.ResetWarehousesSyncedAt()
+		return nil
+	case shop.FieldWarehousesMock:
+		m.ResetWarehousesMock()
 		return nil
 	case shop.FieldIsDefault:
 		m.ResetIsDefault()

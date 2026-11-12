@@ -29,6 +29,10 @@ type Shop struct {
 	APIKeyCiphertext []byte `json:"api_key_ciphertext,omitempty"`
 	// Warehouses holds the value of the "warehouses" field.
 	Warehouses []schema.Warehouse `json:"warehouses,omitempty"`
+	// WarehousesSyncedAt holds the value of the "warehouses_synced_at" field.
+	WarehousesSyncedAt *time.Time `json:"warehouses_synced_at,omitempty"`
+	// WarehousesMock holds the value of the "warehouses_mock" field.
+	WarehousesMock bool `json:"warehouses_mock,omitempty"`
 	// IsDefault holds the value of the "is_default" field.
 	IsDefault bool `json:"is_default,omitempty"`
 	// Archived holds the value of the "archived" field.
@@ -53,13 +57,13 @@ func (*Shop) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case shop.FieldAPIKeyCiphertext, shop.FieldWarehouses:
 			values[i] = new([]byte)
-		case shop.FieldIsDefault, shop.FieldArchived, shop.FieldLastTestOk:
+		case shop.FieldWarehousesMock, shop.FieldIsDefault, shop.FieldArchived, shop.FieldLastTestOk:
 			values[i] = new(sql.NullBool)
 		case shop.FieldID:
 			values[i] = new(sql.NullInt64)
 		case shop.FieldName, shop.FieldClientID, shop.FieldCurrencyCode, shop.FieldLastTestMessage:
 			values[i] = new(sql.NullString)
-		case shop.FieldLastTestedAt, shop.FieldCreatedAt, shop.FieldUpdatedAt:
+		case shop.FieldWarehousesSyncedAt, shop.FieldLastTestedAt, shop.FieldCreatedAt, shop.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -114,6 +118,19 @@ func (s *Shop) assignValues(columns []string, values []any) error {
 				if err := json.Unmarshal(*value, &s.Warehouses); err != nil {
 					return fmt.Errorf("unmarshal field warehouses: %w", err)
 				}
+			}
+		case shop.FieldWarehousesSyncedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field warehouses_synced_at", values[i])
+			} else if value.Valid {
+				s.WarehousesSyncedAt = new(time.Time)
+				*s.WarehousesSyncedAt = value.Time
+			}
+		case shop.FieldWarehousesMock:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field warehouses_mock", values[i])
+			} else if value.Valid {
+				s.WarehousesMock = value.Bool
 			}
 		case shop.FieldIsDefault:
 			if value, ok := values[i].(*sql.NullBool); !ok {
@@ -212,6 +229,14 @@ func (s *Shop) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("warehouses=")
 	builder.WriteString(fmt.Sprintf("%v", s.Warehouses))
+	builder.WriteString(", ")
+	if v := s.WarehousesSyncedAt; v != nil {
+		builder.WriteString("warehouses_synced_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("warehouses_mock=")
+	builder.WriteString(fmt.Sprintf("%v", s.WarehousesMock))
 	builder.WriteString(", ")
 	builder.WriteString("is_default=")
 	builder.WriteString(fmt.Sprintf("%v", s.IsDefault))
