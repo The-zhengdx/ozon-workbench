@@ -63,3 +63,13 @@ codex:
     - -o
     - "{{last_message}}"
     - "-"
+storage:
+  # 空或 none：不上传。需要公网 URL 的上架步骤会提示先配置图床，进程本身可以启动。
+  # mock：仅本地测试，返回不可被 Ozon 拉取的 HTTPS 地址。
+  # yandex：Yandex Disk。令牌只从环境变量 YANDEX_DISK_TOKEN 读取，不要写进这个文件。
+  provider: ""
+  public_base: ""
+  yandex:
+    token: ""
+    root: ozon-workbench
+    api_base: https://cloud-api.yandex.net

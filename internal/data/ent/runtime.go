@@ -8,7 +8,15 @@ import (
 	"ozon-workbench/internal/data/ent/categoryprompt"
 	"ozon-workbench/internal/data/ent/categorysnapshot"
 	"ozon-workbench/internal/data/ent/dictionarysnapshot"
+	"ozon-workbench/internal/data/ent/listingmedia"
+	"ozon-workbench/internal/data/ent/listingproduct"
+	"ozon-workbench/internal/data/ent/listingrevision"
+	"ozon-workbench/internal/data/ent/listingsku"
+	"ozon-workbench/internal/data/ent/publishbatch"
+	"ozon-workbench/internal/data/ent/publishitem"
+	"ozon-workbench/internal/data/ent/publishrequest"
 	"ozon-workbench/internal/data/ent/shop"
+	"ozon-workbench/internal/data/ent/skuwarehousestock"
 	"ozon-workbench/internal/data/ent/taskevent"
 	"ozon-workbench/internal/data/ent/workbenchtask"
 	"ozon-workbench/internal/data/schema"
@@ -231,6 +239,444 @@ func init() {
 	dictionarysnapshotDescSyncedAt := dictionarysnapshotFields[9].Descriptor()
 	// dictionarysnapshot.DefaultSyncedAt holds the default value on creation for the synced_at field.
 	dictionarysnapshot.DefaultSyncedAt = dictionarysnapshotDescSyncedAt.Default.(func() time.Time)
+	listingmediaFields := schema.ListingMedia{}.Fields()
+	_ = listingmediaFields
+	// listingmediaDescRole is the schema descriptor for role field.
+	listingmediaDescRole := listingmediaFields[2].Descriptor()
+	// listingmedia.DefaultRole holds the default value on creation for the role field.
+	listingmedia.DefaultRole = listingmediaDescRole.Default.(string)
+	// listingmedia.RoleValidator is a validator for the "role" field. It is called by the builders before save.
+	listingmedia.RoleValidator = listingmediaDescRole.Validators[0].(func(string) error)
+	// listingmediaDescLocalPath is the schema descriptor for local_path field.
+	listingmediaDescLocalPath := listingmediaFields[3].Descriptor()
+	// listingmedia.DefaultLocalPath holds the default value on creation for the local_path field.
+	listingmedia.DefaultLocalPath = listingmediaDescLocalPath.Default.(string)
+	// listingmedia.LocalPathValidator is a validator for the "local_path" field. It is called by the builders before save.
+	listingmedia.LocalPathValidator = listingmediaDescLocalPath.Validators[0].(func(string) error)
+	// listingmediaDescStorageKey is the schema descriptor for storage_key field.
+	listingmediaDescStorageKey := listingmediaFields[4].Descriptor()
+	// listingmedia.DefaultStorageKey holds the default value on creation for the storage_key field.
+	listingmedia.DefaultStorageKey = listingmediaDescStorageKey.Default.(string)
+	// listingmedia.StorageKeyValidator is a validator for the "storage_key" field. It is called by the builders before save.
+	listingmedia.StorageKeyValidator = listingmediaDescStorageKey.Validators[0].(func(string) error)
+	// listingmediaDescPublicURL is the schema descriptor for public_url field.
+	listingmediaDescPublicURL := listingmediaFields[5].Descriptor()
+	// listingmedia.DefaultPublicURL holds the default value on creation for the public_url field.
+	listingmedia.DefaultPublicURL = listingmediaDescPublicURL.Default.(string)
+	// listingmedia.PublicURLValidator is a validator for the "public_url" field. It is called by the builders before save.
+	listingmedia.PublicURLValidator = listingmediaDescPublicURL.Validators[0].(func(string) error)
+	// listingmediaDescPublicKey is the schema descriptor for public_key field.
+	listingmediaDescPublicKey := listingmediaFields[6].Descriptor()
+	// listingmedia.DefaultPublicKey holds the default value on creation for the public_key field.
+	listingmedia.DefaultPublicKey = listingmediaDescPublicKey.Default.(string)
+	// listingmedia.PublicKeyValidator is a validator for the "public_key" field. It is called by the builders before save.
+	listingmedia.PublicKeyValidator = listingmediaDescPublicKey.Validators[0].(func(string) error)
+	// listingmediaDescStatus is the schema descriptor for status field.
+	listingmediaDescStatus := listingmediaFields[7].Descriptor()
+	// listingmedia.DefaultStatus holds the default value on creation for the status field.
+	listingmedia.DefaultStatus = listingmediaDescStatus.Default.(string)
+	// listingmedia.StatusValidator is a validator for the "status" field. It is called by the builders before save.
+	listingmedia.StatusValidator = listingmediaDescStatus.Validators[0].(func(string) error)
+	// listingmediaDescErrorMessage is the schema descriptor for error_message field.
+	listingmediaDescErrorMessage := listingmediaFields[8].Descriptor()
+	// listingmedia.DefaultErrorMessage holds the default value on creation for the error_message field.
+	listingmedia.DefaultErrorMessage = listingmediaDescErrorMessage.Default.(string)
+	// listingmedia.ErrorMessageValidator is a validator for the "error_message" field. It is called by the builders before save.
+	listingmedia.ErrorMessageValidator = listingmediaDescErrorMessage.Validators[0].(func(string) error)
+	// listingmediaDescAttempts is the schema descriptor for attempts field.
+	listingmediaDescAttempts := listingmediaFields[9].Descriptor()
+	// listingmedia.DefaultAttempts holds the default value on creation for the attempts field.
+	listingmedia.DefaultAttempts = listingmediaDescAttempts.Default.(int)
+	// listingmediaDescCreatedAt is the schema descriptor for created_at field.
+	listingmediaDescCreatedAt := listingmediaFields[10].Descriptor()
+	// listingmedia.DefaultCreatedAt holds the default value on creation for the created_at field.
+	listingmedia.DefaultCreatedAt = listingmediaDescCreatedAt.Default.(func() time.Time)
+	// listingmediaDescUpdatedAt is the schema descriptor for updated_at field.
+	listingmediaDescUpdatedAt := listingmediaFields[11].Descriptor()
+	// listingmedia.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	listingmedia.DefaultUpdatedAt = listingmediaDescUpdatedAt.Default.(func() time.Time)
+	// listingmedia.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	listingmedia.UpdateDefaultUpdatedAt = listingmediaDescUpdatedAt.UpdateDefault.(func() time.Time)
+	listingproductFields := schema.ListingProduct{}.Fields()
+	_ = listingproductFields
+	// listingproductDescTaskID is the schema descriptor for task_id field.
+	listingproductDescTaskID := listingproductFields[1].Descriptor()
+	// listingproduct.DefaultTaskID holds the default value on creation for the task_id field.
+	listingproduct.DefaultTaskID = listingproductDescTaskID.Default.(int)
+	// listingproductDescMasterSku is the schema descriptor for master_sku field.
+	listingproductDescMasterSku := listingproductFields[2].Descriptor()
+	// listingproduct.MasterSkuValidator is a validator for the "master_sku" field. It is called by the builders before save.
+	listingproduct.MasterSkuValidator = func() func(string) error {
+		validators := listingproductDescMasterSku.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(master_sku string) error {
+			for _, fn := range fns {
+				if err := fn(master_sku); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// listingproductDescSupplierURL is the schema descriptor for supplier_url field.
+	listingproductDescSupplierURL := listingproductFields[3].Descriptor()
+	// listingproduct.DefaultSupplierURL holds the default value on creation for the supplier_url field.
+	listingproduct.DefaultSupplierURL = listingproductDescSupplierURL.Default.(string)
+	// listingproduct.SupplierURLValidator is a validator for the "supplier_url" field. It is called by the builders before save.
+	listingproduct.SupplierURLValidator = listingproductDescSupplierURL.Validators[0].(func(string) error)
+	// listingproductDescDescriptionCategoryID is the schema descriptor for description_category_id field.
+	listingproductDescDescriptionCategoryID := listingproductFields[4].Descriptor()
+	// listingproduct.DefaultDescriptionCategoryID holds the default value on creation for the description_category_id field.
+	listingproduct.DefaultDescriptionCategoryID = listingproductDescDescriptionCategoryID.Default.(int64)
+	// listingproductDescTypeID is the schema descriptor for type_id field.
+	listingproductDescTypeID := listingproductFields[5].Descriptor()
+	// listingproduct.DefaultTypeID holds the default value on creation for the type_id field.
+	listingproduct.DefaultTypeID = listingproductDescTypeID.Default.(int64)
+	// listingproductDescTypeName is the schema descriptor for type_name field.
+	listingproductDescTypeName := listingproductFields[6].Descriptor()
+	// listingproduct.DefaultTypeName holds the default value on creation for the type_name field.
+	listingproduct.DefaultTypeName = listingproductDescTypeName.Default.(string)
+	// listingproduct.TypeNameValidator is a validator for the "type_name" field. It is called by the builders before save.
+	listingproduct.TypeNameValidator = listingproductDescTypeName.Validators[0].(func(string) error)
+	// listingproductDescLanguage is the schema descriptor for language field.
+	listingproductDescLanguage := listingproductFields[8].Descriptor()
+	// listingproduct.DefaultLanguage holds the default value on creation for the language field.
+	listingproduct.DefaultLanguage = listingproductDescLanguage.Default.(string)
+	// listingproduct.LanguageValidator is a validator for the "language" field. It is called by the builders before save.
+	listingproduct.LanguageValidator = listingproductDescLanguage.Validators[0].(func(string) error)
+	// listingproductDescAttributesJSON is the schema descriptor for attributes_json field.
+	listingproductDescAttributesJSON := listingproductFields[9].Descriptor()
+	// listingproduct.DefaultAttributesJSON holds the default value on creation for the attributes_json field.
+	listingproduct.DefaultAttributesJSON = listingproductDescAttributesJSON.Default.(string)
+	// listingproductDescCodexSessionID is the schema descriptor for codex_session_id field.
+	listingproductDescCodexSessionID := listingproductFields[10].Descriptor()
+	// listingproduct.DefaultCodexSessionID holds the default value on creation for the codex_session_id field.
+	listingproduct.DefaultCodexSessionID = listingproductDescCodexSessionID.Default.(string)
+	// listingproduct.CodexSessionIDValidator is a validator for the "codex_session_id" field. It is called by the builders before save.
+	listingproduct.CodexSessionIDValidator = listingproductDescCodexSessionID.Validators[0].(func(string) error)
+	// listingproductDescCreatedAt is the schema descriptor for created_at field.
+	listingproductDescCreatedAt := listingproductFields[11].Descriptor()
+	// listingproduct.DefaultCreatedAt holds the default value on creation for the created_at field.
+	listingproduct.DefaultCreatedAt = listingproductDescCreatedAt.Default.(func() time.Time)
+	// listingproductDescUpdatedAt is the schema descriptor for updated_at field.
+	listingproductDescUpdatedAt := listingproductFields[12].Descriptor()
+	// listingproduct.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	listingproduct.DefaultUpdatedAt = listingproductDescUpdatedAt.Default.(func() time.Time)
+	// listingproduct.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	listingproduct.UpdateDefaultUpdatedAt = listingproductDescUpdatedAt.UpdateDefault.(func() time.Time)
+	listingrevisionFields := schema.ListingRevision{}.Fields()
+	_ = listingrevisionFields
+	// listingrevisionDescSource is the schema descriptor for source field.
+	listingrevisionDescSource := listingrevisionFields[3].Descriptor()
+	// listingrevision.DefaultSource holds the default value on creation for the source field.
+	listingrevision.DefaultSource = listingrevisionDescSource.Default.(string)
+	// listingrevision.SourceValidator is a validator for the "source" field. It is called by the builders before save.
+	listingrevision.SourceValidator = listingrevisionDescSource.Validators[0].(func(string) error)
+	// listingrevisionDescCodexItemJSON is the schema descriptor for codex_item_json field.
+	listingrevisionDescCodexItemJSON := listingrevisionFields[4].Descriptor()
+	// listingrevision.DefaultCodexItemJSON holds the default value on creation for the codex_item_json field.
+	listingrevision.DefaultCodexItemJSON = listingrevisionDescCodexItemJSON.Default.(string)
+	// listingrevisionDescItemJSON is the schema descriptor for item_json field.
+	listingrevisionDescItemJSON := listingrevisionFields[5].Descriptor()
+	// listingrevision.DefaultItemJSON holds the default value on creation for the item_json field.
+	listingrevision.DefaultItemJSON = listingrevisionDescItemJSON.Default.(string)
+	// listingrevisionDescContractVersion is the schema descriptor for contract_version field.
+	listingrevisionDescContractVersion := listingrevisionFields[6].Descriptor()
+	// listingrevision.DefaultContractVersion holds the default value on creation for the contract_version field.
+	listingrevision.DefaultContractVersion = listingrevisionDescContractVersion.Default.(string)
+	// listingrevision.ContractVersionValidator is a validator for the "contract_version" field. It is called by the builders before save.
+	listingrevision.ContractVersionValidator = listingrevisionDescContractVersion.Validators[0].(func(string) error)
+	// listingrevisionDescValidationJSON is the schema descriptor for validation_json field.
+	listingrevisionDescValidationJSON := listingrevisionFields[7].Descriptor()
+	// listingrevision.DefaultValidationJSON holds the default value on creation for the validation_json field.
+	listingrevision.DefaultValidationJSON = listingrevisionDescValidationJSON.Default.(string)
+	// listingrevisionDescValid is the schema descriptor for valid field.
+	listingrevisionDescValid := listingrevisionFields[8].Descriptor()
+	// listingrevision.DefaultValid holds the default value on creation for the valid field.
+	listingrevision.DefaultValid = listingrevisionDescValid.Default.(bool)
+	// listingrevisionDescCreatedAt is the schema descriptor for created_at field.
+	listingrevisionDescCreatedAt := listingrevisionFields[9].Descriptor()
+	// listingrevision.DefaultCreatedAt holds the default value on creation for the created_at field.
+	listingrevision.DefaultCreatedAt = listingrevisionDescCreatedAt.Default.(func() time.Time)
+	listingskuFields := schema.ListingSKU{}.Fields()
+	_ = listingskuFields
+	// listingskuDescTaskID is the schema descriptor for task_id field.
+	listingskuDescTaskID := listingskuFields[2].Descriptor()
+	// listingsku.DefaultTaskID holds the default value on creation for the task_id field.
+	listingsku.DefaultTaskID = listingskuDescTaskID.Default.(int)
+	// listingskuDescOfferID is the schema descriptor for offer_id field.
+	listingskuDescOfferID := listingskuFields[3].Descriptor()
+	// listingsku.OfferIDValidator is a validator for the "offer_id" field. It is called by the builders before save.
+	listingsku.OfferIDValidator = func() func(string) error {
+		validators := listingskuDescOfferID.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(offer_id string) error {
+			for _, fn := range fns {
+				if err := fn(offer_id); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// listingskuDescMasterSku is the schema descriptor for master_sku field.
+	listingskuDescMasterSku := listingskuFields[4].Descriptor()
+	// listingsku.DefaultMasterSku holds the default value on creation for the master_sku field.
+	listingsku.DefaultMasterSku = listingskuDescMasterSku.Default.(string)
+	// listingsku.MasterSkuValidator is a validator for the "master_sku" field. It is called by the builders before save.
+	listingsku.MasterSkuValidator = listingskuDescMasterSku.Validators[0].(func(string) error)
+	// listingskuDescSupplierVariantRef is the schema descriptor for supplier_variant_ref field.
+	listingskuDescSupplierVariantRef := listingskuFields[5].Descriptor()
+	// listingsku.DefaultSupplierVariantRef holds the default value on creation for the supplier_variant_ref field.
+	listingsku.DefaultSupplierVariantRef = listingskuDescSupplierVariantRef.Default.(string)
+	// listingsku.SupplierVariantRefValidator is a validator for the "supplier_variant_ref" field. It is called by the builders before save.
+	listingsku.SupplierVariantRefValidator = listingskuDescSupplierVariantRef.Validators[0].(func(string) error)
+	// listingskuDescVariantSpecs is the schema descriptor for variant_specs field.
+	listingskuDescVariantSpecs := listingskuFields[6].Descriptor()
+	// listingsku.DefaultVariantSpecs holds the default value on creation for the variant_specs field.
+	listingsku.DefaultVariantSpecs = listingskuDescVariantSpecs.Default.(string)
+	// listingsku.VariantSpecsValidator is a validator for the "variant_specs" field. It is called by the builders before save.
+	listingsku.VariantSpecsValidator = listingskuDescVariantSpecs.Validators[0].(func(string) error)
+	// listingskuDescCategoryLabel is the schema descriptor for category_label field.
+	listingskuDescCategoryLabel := listingskuFields[7].Descriptor()
+	// listingsku.DefaultCategoryLabel holds the default value on creation for the category_label field.
+	listingsku.DefaultCategoryLabel = listingskuDescCategoryLabel.Default.(string)
+	// listingsku.CategoryLabelValidator is a validator for the "category_label" field. It is called by the builders before save.
+	listingsku.CategoryLabelValidator = listingskuDescCategoryLabel.Validators[0].(func(string) error)
+	// listingskuDescCurrentVersion is the schema descriptor for current_version field.
+	listingskuDescCurrentVersion := listingskuFields[8].Descriptor()
+	// listingsku.DefaultCurrentVersion holds the default value on creation for the current_version field.
+	listingsku.DefaultCurrentVersion = listingskuDescCurrentVersion.Default.(int)
+	// listingskuDescPublishStatus is the schema descriptor for publish_status field.
+	listingskuDescPublishStatus := listingskuFields[9].Descriptor()
+	// listingsku.DefaultPublishStatus holds the default value on creation for the publish_status field.
+	listingsku.DefaultPublishStatus = listingskuDescPublishStatus.Default.(string)
+	// listingsku.PublishStatusValidator is a validator for the "publish_status" field. It is called by the builders before save.
+	listingsku.PublishStatusValidator = listingskuDescPublishStatus.Validators[0].(func(string) error)
+	// listingskuDescPlatformStatus is the schema descriptor for platform_status field.
+	listingskuDescPlatformStatus := listingskuFields[10].Descriptor()
+	// listingsku.DefaultPlatformStatus holds the default value on creation for the platform_status field.
+	listingsku.DefaultPlatformStatus = listingskuDescPlatformStatus.Default.(string)
+	// listingsku.PlatformStatusValidator is a validator for the "platform_status" field. It is called by the builders before save.
+	listingsku.PlatformStatusValidator = listingskuDescPlatformStatus.Validators[0].(func(string) error)
+	// listingskuDescPlatformReason is the schema descriptor for platform_reason field.
+	listingskuDescPlatformReason := listingskuFields[11].Descriptor()
+	// listingsku.DefaultPlatformReason holds the default value on creation for the platform_reason field.
+	listingsku.DefaultPlatformReason = listingskuDescPlatformReason.Default.(string)
+	// listingsku.PlatformReasonValidator is a validator for the "platform_reason" field. It is called by the builders before save.
+	listingsku.PlatformReasonValidator = listingskuDescPlatformReason.Validators[0].(func(string) error)
+	// listingskuDescLastImportedVersion is the schema descriptor for last_imported_version field.
+	listingskuDescLastImportedVersion := listingskuFields[12].Descriptor()
+	// listingsku.DefaultLastImportedVersion holds the default value on creation for the last_imported_version field.
+	listingsku.DefaultLastImportedVersion = listingskuDescLastImportedVersion.Default.(int)
+	// listingskuDescOzonProductID is the schema descriptor for ozon_product_id field.
+	listingskuDescOzonProductID := listingskuFields[13].Descriptor()
+	// listingsku.DefaultOzonProductID holds the default value on creation for the ozon_product_id field.
+	listingsku.DefaultOzonProductID = listingskuDescOzonProductID.Default.(int64)
+	// listingskuDescOzonSku is the schema descriptor for ozon_sku field.
+	listingskuDescOzonSku := listingskuFields[14].Descriptor()
+	// listingsku.DefaultOzonSku holds the default value on creation for the ozon_sku field.
+	listingsku.DefaultOzonSku = listingskuDescOzonSku.Default.(int64)
+	// listingskuDescCurrencyCode is the schema descriptor for currency_code field.
+	listingskuDescCurrencyCode := listingskuFields[16].Descriptor()
+	// listingsku.DefaultCurrencyCode holds the default value on creation for the currency_code field.
+	listingsku.DefaultCurrencyCode = listingskuDescCurrencyCode.Default.(string)
+	// listingsku.CurrencyCodeValidator is a validator for the "currency_code" field. It is called by the builders before save.
+	listingsku.CurrencyCodeValidator = listingskuDescCurrencyCode.Validators[0].(func(string) error)
+	// listingskuDescPrice is the schema descriptor for price field.
+	listingskuDescPrice := listingskuFields[17].Descriptor()
+	// listingsku.DefaultPrice holds the default value on creation for the price field.
+	listingsku.DefaultPrice = listingskuDescPrice.Default.(string)
+	// listingsku.PriceValidator is a validator for the "price" field. It is called by the builders before save.
+	listingsku.PriceValidator = listingskuDescPrice.Validators[0].(func(string) error)
+	// listingskuDescTitleRu is the schema descriptor for title_ru field.
+	listingskuDescTitleRu := listingskuFields[18].Descriptor()
+	// listingsku.DefaultTitleRu holds the default value on creation for the title_ru field.
+	listingsku.DefaultTitleRu = listingskuDescTitleRu.Default.(string)
+	// listingsku.TitleRuValidator is a validator for the "title_ru" field. It is called by the builders before save.
+	listingsku.TitleRuValidator = listingskuDescTitleRu.Validators[0].(func(string) error)
+	// listingskuDescPrimaryImage is the schema descriptor for primary_image field.
+	listingskuDescPrimaryImage := listingskuFields[19].Descriptor()
+	// listingsku.DefaultPrimaryImage holds the default value on creation for the primary_image field.
+	listingsku.DefaultPrimaryImage = listingskuDescPrimaryImage.Default.(string)
+	// listingsku.PrimaryImageValidator is a validator for the "primary_image" field. It is called by the builders before save.
+	listingsku.PrimaryImageValidator = listingskuDescPrimaryImage.Validators[0].(func(string) error)
+	// listingskuDescPreviewPath is the schema descriptor for preview_path field.
+	listingskuDescPreviewPath := listingskuFields[20].Descriptor()
+	// listingsku.DefaultPreviewPath holds the default value on creation for the preview_path field.
+	listingsku.DefaultPreviewPath = listingskuDescPreviewPath.Default.(string)
+	// listingsku.PreviewPathValidator is a validator for the "preview_path" field. It is called by the builders before save.
+	listingsku.PreviewPathValidator = listingskuDescPreviewPath.Validators[0].(func(string) error)
+	// listingskuDescLastError is the schema descriptor for last_error field.
+	listingskuDescLastError := listingskuFields[21].Descriptor()
+	// listingsku.DefaultLastError holds the default value on creation for the last_error field.
+	listingsku.DefaultLastError = listingskuDescLastError.Default.(string)
+	// listingsku.LastErrorValidator is a validator for the "last_error" field. It is called by the builders before save.
+	listingsku.LastErrorValidator = listingskuDescLastError.Validators[0].(func(string) error)
+	// listingskuDescCodexAttempted is the schema descriptor for codex_attempted field.
+	listingskuDescCodexAttempted := listingskuFields[22].Descriptor()
+	// listingsku.DefaultCodexAttempted holds the default value on creation for the codex_attempted field.
+	listingsku.DefaultCodexAttempted = listingskuDescCodexAttempted.Default.(bool)
+	// listingskuDescCreatedAt is the schema descriptor for created_at field.
+	listingskuDescCreatedAt := listingskuFields[23].Descriptor()
+	// listingsku.DefaultCreatedAt holds the default value on creation for the created_at field.
+	listingsku.DefaultCreatedAt = listingskuDescCreatedAt.Default.(func() time.Time)
+	// listingskuDescUpdatedAt is the schema descriptor for updated_at field.
+	listingskuDescUpdatedAt := listingskuFields[24].Descriptor()
+	// listingsku.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	listingsku.DefaultUpdatedAt = listingskuDescUpdatedAt.Default.(func() time.Time)
+	// listingsku.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	listingsku.UpdateDefaultUpdatedAt = listingskuDescUpdatedAt.UpdateDefault.(func() time.Time)
+	publishbatchFields := schema.PublishBatch{}.Fields()
+	_ = publishbatchFields
+	// publishbatchDescIdempotencyKey is the schema descriptor for idempotency_key field.
+	publishbatchDescIdempotencyKey := publishbatchFields[1].Descriptor()
+	// publishbatch.IdempotencyKeyValidator is a validator for the "idempotency_key" field. It is called by the builders before save.
+	publishbatch.IdempotencyKeyValidator = func() func(string) error {
+		validators := publishbatchDescIdempotencyKey.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(idempotency_key string) error {
+			for _, fn := range fns {
+				if err := fn(idempotency_key); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// publishbatchDescSelectionHash is the schema descriptor for selection_hash field.
+	publishbatchDescSelectionHash := publishbatchFields[2].Descriptor()
+	// publishbatch.DefaultSelectionHash holds the default value on creation for the selection_hash field.
+	publishbatch.DefaultSelectionHash = publishbatchDescSelectionHash.Default.(string)
+	// publishbatch.SelectionHashValidator is a validator for the "selection_hash" field. It is called by the builders before save.
+	publishbatch.SelectionHashValidator = publishbatchDescSelectionHash.Validators[0].(func(string) error)
+	// publishbatchDescStatus is the schema descriptor for status field.
+	publishbatchDescStatus := publishbatchFields[3].Descriptor()
+	// publishbatch.DefaultStatus holds the default value on creation for the status field.
+	publishbatch.DefaultStatus = publishbatchDescStatus.Default.(string)
+	// publishbatch.StatusValidator is a validator for the "status" field. It is called by the builders before save.
+	publishbatch.StatusValidator = publishbatchDescStatus.Validators[0].(func(string) error)
+	// publishbatchDescCreatedAt is the schema descriptor for created_at field.
+	publishbatchDescCreatedAt := publishbatchFields[4].Descriptor()
+	// publishbatch.DefaultCreatedAt holds the default value on creation for the created_at field.
+	publishbatch.DefaultCreatedAt = publishbatchDescCreatedAt.Default.(func() time.Time)
+	// publishbatchDescUpdatedAt is the schema descriptor for updated_at field.
+	publishbatchDescUpdatedAt := publishbatchFields[5].Descriptor()
+	// publishbatch.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	publishbatch.DefaultUpdatedAt = publishbatchDescUpdatedAt.Default.(func() time.Time)
+	// publishbatch.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	publishbatch.UpdateDefaultUpdatedAt = publishbatchDescUpdatedAt.UpdateDefault.(func() time.Time)
+	publishitemFields := schema.PublishItem{}.Fields()
+	_ = publishitemFields
+	// publishitemDescOfferID is the schema descriptor for offer_id field.
+	publishitemDescOfferID := publishitemFields[5].Descriptor()
+	// publishitem.OfferIDValidator is a validator for the "offer_id" field. It is called by the builders before save.
+	publishitem.OfferIDValidator = func() func(string) error {
+		validators := publishitemDescOfferID.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(offer_id string) error {
+			for _, fn := range fns {
+				if err := fn(offer_id); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// publishitemDescResultStatus is the schema descriptor for result_status field.
+	publishitemDescResultStatus := publishitemFields[6].Descriptor()
+	// publishitem.DefaultResultStatus holds the default value on creation for the result_status field.
+	publishitem.DefaultResultStatus = publishitemDescResultStatus.Default.(string)
+	// publishitem.ResultStatusValidator is a validator for the "result_status" field. It is called by the builders before save.
+	publishitem.ResultStatusValidator = publishitemDescResultStatus.Validators[0].(func(string) error)
+	// publishitemDescOzonProductID is the schema descriptor for ozon_product_id field.
+	publishitemDescOzonProductID := publishitemFields[7].Descriptor()
+	// publishitem.DefaultOzonProductID holds the default value on creation for the ozon_product_id field.
+	publishitem.DefaultOzonProductID = publishitemDescOzonProductID.Default.(int64)
+	// publishitemDescOzonSku is the schema descriptor for ozon_sku field.
+	publishitemDescOzonSku := publishitemFields[8].Descriptor()
+	// publishitem.DefaultOzonSku holds the default value on creation for the ozon_sku field.
+	publishitem.DefaultOzonSku = publishitemDescOzonSku.Default.(int64)
+	// publishitemDescErrorCode is the schema descriptor for error_code field.
+	publishitemDescErrorCode := publishitemFields[9].Descriptor()
+	// publishitem.DefaultErrorCode holds the default value on creation for the error_code field.
+	publishitem.DefaultErrorCode = publishitemDescErrorCode.Default.(string)
+	// publishitem.ErrorCodeValidator is a validator for the "error_code" field. It is called by the builders before save.
+	publishitem.ErrorCodeValidator = publishitemDescErrorCode.Validators[0].(func(string) error)
+	// publishitemDescErrorDetail is the schema descriptor for error_detail field.
+	publishitemDescErrorDetail := publishitemFields[10].Descriptor()
+	// publishitem.DefaultErrorDetail holds the default value on creation for the error_detail field.
+	publishitem.DefaultErrorDetail = publishitemDescErrorDetail.Default.(string)
+	// publishitem.ErrorDetailValidator is a validator for the "error_detail" field. It is called by the builders before save.
+	publishitem.ErrorDetailValidator = publishitemDescErrorDetail.Validators[0].(func(string) error)
+	publishrequestFields := schema.PublishRequest{}.Fields()
+	_ = publishrequestFields
+	// publishrequestDescChunkIndex is the schema descriptor for chunk_index field.
+	publishrequestDescChunkIndex := publishrequestFields[2].Descriptor()
+	// publishrequest.DefaultChunkIndex holds the default value on creation for the chunk_index field.
+	publishrequest.DefaultChunkIndex = publishrequestDescChunkIndex.Default.(int)
+	// publishrequestDescRequestBodyJSON is the schema descriptor for request_body_json field.
+	publishrequestDescRequestBodyJSON := publishrequestFields[3].Descriptor()
+	// publishrequest.DefaultRequestBodyJSON holds the default value on creation for the request_body_json field.
+	publishrequest.DefaultRequestBodyJSON = publishrequestDescRequestBodyJSON.Default.(string)
+	// publishrequestDescTaskID is the schema descriptor for task_id field.
+	publishrequestDescTaskID := publishrequestFields[4].Descriptor()
+	// publishrequest.DefaultTaskID holds the default value on creation for the task_id field.
+	publishrequest.DefaultTaskID = publishrequestDescTaskID.Default.(string)
+	// publishrequest.TaskIDValidator is a validator for the "task_id" field. It is called by the builders before save.
+	publishrequest.TaskIDValidator = publishrequestDescTaskID.Validators[0].(func(string) error)
+	// publishrequestDescStatus is the schema descriptor for status field.
+	publishrequestDescStatus := publishrequestFields[5].Descriptor()
+	// publishrequest.DefaultStatus holds the default value on creation for the status field.
+	publishrequest.DefaultStatus = publishrequestDescStatus.Default.(string)
+	// publishrequest.StatusValidator is a validator for the "status" field. It is called by the builders before save.
+	publishrequest.StatusValidator = publishrequestDescStatus.Validators[0].(func(string) error)
+	// publishrequestDescErrorMessage is the schema descriptor for error_message field.
+	publishrequestDescErrorMessage := publishrequestFields[6].Descriptor()
+	// publishrequest.DefaultErrorMessage holds the default value on creation for the error_message field.
+	publishrequest.DefaultErrorMessage = publishrequestDescErrorMessage.Default.(string)
+	// publishrequest.ErrorMessageValidator is a validator for the "error_message" field. It is called by the builders before save.
+	publishrequest.ErrorMessageValidator = publishrequestDescErrorMessage.Validators[0].(func(string) error)
+	skuwarehousestockFields := schema.SKUWarehouseStock{}.Fields()
+	_ = skuwarehousestockFields
+	// skuwarehousestockDescTargetQty is the schema descriptor for target_qty field.
+	skuwarehousestockDescTargetQty := skuwarehousestockFields[3].Descriptor()
+	// skuwarehousestock.DefaultTargetQty holds the default value on creation for the target_qty field.
+	skuwarehousestock.DefaultTargetQty = skuwarehousestockDescTargetQty.Default.(int)
+	// skuwarehousestockDescPlatformQty is the schema descriptor for platform_qty field.
+	skuwarehousestockDescPlatformQty := skuwarehousestockFields[4].Descriptor()
+	// skuwarehousestock.DefaultPlatformQty holds the default value on creation for the platform_qty field.
+	skuwarehousestock.DefaultPlatformQty = skuwarehousestockDescPlatformQty.Default.(int)
+	// skuwarehousestockDescSyncStatus is the schema descriptor for sync_status field.
+	skuwarehousestockDescSyncStatus := skuwarehousestockFields[5].Descriptor()
+	// skuwarehousestock.DefaultSyncStatus holds the default value on creation for the sync_status field.
+	skuwarehousestock.DefaultSyncStatus = skuwarehousestockDescSyncStatus.Default.(string)
+	// skuwarehousestock.SyncStatusValidator is a validator for the "sync_status" field. It is called by the builders before save.
+	skuwarehousestock.SyncStatusValidator = skuwarehousestockDescSyncStatus.Validators[0].(func(string) error)
+	// skuwarehousestockDescSyncMessage is the schema descriptor for sync_message field.
+	skuwarehousestockDescSyncMessage := skuwarehousestockFields[6].Descriptor()
+	// skuwarehousestock.DefaultSyncMessage holds the default value on creation for the sync_message field.
+	skuwarehousestock.DefaultSyncMessage = skuwarehousestockDescSyncMessage.Default.(string)
+	// skuwarehousestock.SyncMessageValidator is a validator for the "sync_message" field. It is called by the builders before save.
+	skuwarehousestock.SyncMessageValidator = skuwarehousestockDescSyncMessage.Validators[0].(func(string) error)
+	// skuwarehousestockDescUpdatedAt is the schema descriptor for updated_at field.
+	skuwarehousestockDescUpdatedAt := skuwarehousestockFields[8].Descriptor()
+	// skuwarehousestock.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	skuwarehousestock.DefaultUpdatedAt = skuwarehousestockDescUpdatedAt.Default.(func() time.Time)
+	// skuwarehousestock.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	skuwarehousestock.UpdateDefaultUpdatedAt = skuwarehousestockDescUpdatedAt.UpdateDefault.(func() time.Time)
 	shopFields := schema.Shop{}.Fields()
 	_ = shopFields
 	// shopDescName is the schema descriptor for name field.

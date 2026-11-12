@@ -22,6 +22,22 @@ type Tx struct {
 	CategorySnapshot *CategorySnapshotClient
 	// DictionarySnapshot is the client for interacting with the DictionarySnapshot builders.
 	DictionarySnapshot *DictionarySnapshotClient
+	// ListingMedia is the client for interacting with the ListingMedia builders.
+	ListingMedia *ListingMediaClient
+	// ListingProduct is the client for interacting with the ListingProduct builders.
+	ListingProduct *ListingProductClient
+	// ListingRevision is the client for interacting with the ListingRevision builders.
+	ListingRevision *ListingRevisionClient
+	// ListingSKU is the client for interacting with the ListingSKU builders.
+	ListingSKU *ListingSKUClient
+	// PublishBatch is the client for interacting with the PublishBatch builders.
+	PublishBatch *PublishBatchClient
+	// PublishItem is the client for interacting with the PublishItem builders.
+	PublishItem *PublishItemClient
+	// PublishRequest is the client for interacting with the PublishRequest builders.
+	PublishRequest *PublishRequestClient
+	// SKUWarehouseStock is the client for interacting with the SKUWarehouseStock builders.
+	SKUWarehouseStock *SKUWarehouseStockClient
 	// Shop is the client for interacting with the Shop builders.
 	Shop *ShopClient
 	// TaskEvent is the client for interacting with the TaskEvent builders.
@@ -164,6 +180,14 @@ func (tx *Tx) init() {
 	tx.CategoryPrompt = NewCategoryPromptClient(tx.config)
 	tx.CategorySnapshot = NewCategorySnapshotClient(tx.config)
 	tx.DictionarySnapshot = NewDictionarySnapshotClient(tx.config)
+	tx.ListingMedia = NewListingMediaClient(tx.config)
+	tx.ListingProduct = NewListingProductClient(tx.config)
+	tx.ListingRevision = NewListingRevisionClient(tx.config)
+	tx.ListingSKU = NewListingSKUClient(tx.config)
+	tx.PublishBatch = NewPublishBatchClient(tx.config)
+	tx.PublishItem = NewPublishItemClient(tx.config)
+	tx.PublishRequest = NewPublishRequestClient(tx.config)
+	tx.SKUWarehouseStock = NewSKUWarehouseStockClient(tx.config)
 	tx.Shop = NewShopClient(tx.config)
 	tx.TaskEvent = NewTaskEventClient(tx.config)
 	tx.WorkbenchTask = NewWorkbenchTaskClient(tx.config)

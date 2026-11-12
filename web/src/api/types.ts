@@ -203,6 +203,90 @@ export interface EventPage {
   has_more: boolean;
 }
 
+export interface ListingRow {
+  id: number;
+  shop_id: number;
+  task_id: number;
+  offer_id: string;
+  master_sku: string;
+  variant_specs: string;
+  title: string;
+  category_label: string;
+  type_id: number;
+  price: string;
+  currency_code: string;
+  primary_image: string;
+  preview_url: string;
+  publish_status: string;
+  platform_status: string;
+  platform_reason: string;
+  current_version: number;
+  last_imported_version: number;
+  supplier_url: string;
+  updated_at: string;
+  last_error: string;
+  eligible: boolean;
+  ozon_product_id: number;
+  ozon_sku: number;
+}
+
+export interface ListingPage {
+  rows: ListingRow[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface ListingMedia {
+  id: number;
+  role: string;
+  local_path: string;
+  public_url: string;
+  status: string;
+  error: string;
+  attempts: number;
+  preview: string;
+}
+
+export interface ListingDetail {
+  sku: ListingRow;
+  item_json: Record<string, unknown>;
+  codex_item_json: Record<string, unknown>;
+  version: number;
+  source: string;
+  issues: string[];
+  contract: AttributeRecord[];
+  revisions: { version: number; source: string; valid: boolean; issues: string[]; item_json: Record<string, unknown>; created_at: string }[];
+  media: ListingMedia[];
+  stocks: { warehouse_id: number; target_qty: number; platform_qty: number; sync_status: string; sync_message: string; synced_at: string | null }[];
+  storage: { provider: string; configured: boolean; message: string };
+}
+
+export interface PublishPlan {
+  ready: { id: number; offer_id: string; version: number; ok: boolean; errors: string[] }[];
+  blocked: { id: number; offer_id: string; version: number; ok: boolean; errors: string[] }[];
+  chunks: number;
+  bodies: { items: unknown[] }[];
+  need_confirm: boolean;
+  batch?: {
+    id: number;
+    status: string;
+    imported: number;
+    failed: number;
+    pending: number;
+    unknown: number;
+    requests: {
+      id: number;
+      chunk: number;
+      task_id: string;
+      status: string;
+      error: string;
+      request_body: unknown;
+      items: { offer_id: string; result: string; error_code: string; error_detail: string; product_id: number }[];
+    }[];
+  };
+}
+
 export interface ApiFailure {
   message: string;
   fields?: Record<string, string>;

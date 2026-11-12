@@ -10,7 +10,7 @@ import (
 	"ozon-workbench/internal/service"
 )
 
-func NewHTTPServer(cfg *conf.Runtime, shops *service.ShopService, categories *service.CategoryService, tasks *service.TaskService, logger log.Logger) *khttp.Server {
+func NewHTTPServer(cfg *conf.Runtime, shops *service.ShopService, categories *service.CategoryService, tasks *service.TaskService, listings *service.ListingService, logger log.Logger) *khttp.Server {
 	srv := khttp.NewServer(
 		khttp.Address(cfg.HTTPAddr),
 		khttp.Timeout(cfg.HTTPTimeout),
@@ -22,18 +22,27 @@ func NewHTTPServer(cfg *conf.Runtime, shops *service.ShopService, categories *se
 	})
 	root := srv.Route("/")
 	root.GET("/api/v1/meta", func(ctx khttp.Context) error {
+		storageName := "none"
+		storageOn := false
+		if listings != nil && listings.Store() != nil {
+			storageName = listings.Store().Name()
+			storageOn = listings.Store().Configured()
+		}
 		return ctx.JSON(http.StatusOK, map[string]any{
-			"service":    "ozon-workbench",
-			"mock":       cfg.OzonMock,
-			"proxy":      cfg.OzonProxy,
-			"codex_mock": cfg.CodexMock,
-			"phase":      2,
+			"service":            "ozon-workbench",
+			"mock":               cfg.OzonMock,
+			"proxy":              cfg.OzonProxy,
+			"codex_mock":         cfg.CodexMock,
+			"storage_provider":   storageName,
+			"storage_configured": storageOn,
+			"phase":              4,
 		})
 	})
 	api := srv.Route("/api/v1")
 	shops.Register(api)
 	categories.Register(api)
 	tasks.Register(api)
+	listings.Register(api)
 	srv.HandlePrefix("/media/", http.HandlerFunc(tasks.ServeMedia))
 	log.NewHelper(logger).Infof("http listening on %s ozon_mock=%v proxy=%s codex_mock=%v", cfg.HTTPAddr, cfg.OzonMock, cfg.OzonProxy, cfg.CodexMock)
 	return srv

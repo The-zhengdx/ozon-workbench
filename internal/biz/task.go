@@ -247,6 +247,30 @@ type TaskUsecase struct {
 	log     *log.Helper
 	mu      sync.Mutex
 	locks   map[int]*sync.Mutex
+	sink    CompletedTaskSink
+}
+
+// CompletedTaskSink is notified after a material task reaches COMPLETED.
+// Listing creation is optional so the workbench still runs without the listing module.
+type CompletedTaskSink interface {
+	OnTaskCompleted(ctx context.Context, task *Task)
+}
+
+// SetListingSink attaches the module that turns an approved plan into sellable SKUs.
+func (uc *TaskUsecase) SetListingSink(sink CompletedTaskSink) {
+	if uc != nil {
+		uc.sink = sink
+	}
+}
+
+func (uc *TaskUsecase) noteCompleted(ctx context.Context, task *Task) {
+	if task == nil || task.Status != StatusCompleted {
+		return
+	}
+	writeApprovedPlan(task)
+	if uc.sink != nil {
+		uc.sink.OnTaskCompleted(ctx, task)
+	}
 }
 
 func NewTaskUsecase(repo TaskRepo, shops ShopRepo, catalog TaskCatalog, runner CodexRunner, sched Scheduler, rt TaskRuntime, logger log.Logger) (*TaskUsecase, error) {
@@ -508,7 +532,7 @@ func (uc *TaskUsecase) UpdatePolicy(ctx context.Context, shopID, id int, revisio
 		return nil, err
 	}
 	if decision.AdvanceVisual {
-		writeApprovedPlan(saved)
+		uc.noteCompleted(ctx, saved)
 	}
 	if scheduleVisual {
 		uc.schedule(func() { uc.runVisual(context.Background(), saved.ShopID, saved.ID) })
@@ -555,7 +579,7 @@ func (uc *TaskUsecase) Approve(ctx context.Context, shopID, id int, stage string
 		return nil, err
 	}
 	if stage == "visual" {
-		writeApprovedPlan(saved)
+		uc.noteCompleted(ctx, saved)
 	}
 	if scheduleVisual {
 		uc.schedule(func() { uc.runVisual(context.Background(), saved.ShopID, saved.ID) })
@@ -711,7 +735,7 @@ func (uc *TaskUsecase) recoverVisual(ctx context.Context, shopID, id int) {
 	if err != nil {
 		return
 	}
-	writeApprovedPlan(saved)
+	uc.noteCompleted(ctx, saved)
 }
 
 func (t *Task) Summary() TaskView {

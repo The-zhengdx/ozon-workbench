@@ -1,8 +1,10 @@
 import { createRouter, createWebHistory } from "vue-router";
 
 import CategoriesView from "../views/CategoriesView.vue";
+import ListingDetailView from "../views/ListingDetailView.vue";
+import ListingsView from "../views/ListingsView.vue";
+import SettingsView from "../views/SettingsView.vue";
 import ShopsView from "../views/ShopsView.vue";
-import SoonView from "../views/SoonView.vue";
 import TasksView from "../views/TasksView.vue";
 
 export const router = createRouter({
@@ -26,9 +28,18 @@ export const router = createRouter({
     },
     {
       path: "/listings",
-      component: SoonView,
-      props: { phase: "后续阶段", detail: "按可售 SKU 刊登、批次和库存不在本次范围内。" },
-      meta: { title: "上架商品管理", desc: "每行对应一个可独立销售的卖家 SKU。" },
+      component: ListingsView,
+      meta: { title: "上架商品管理", desc: "每行对应一个可独立销售的卖家 SKU。单条和批量都提交选定版本。" },
+    },
+    {
+      path: "/listings/:id",
+      component: ListingDetailView,
+      meta: { title: "SKU 详情", desc: "同一份商品参数驱动表单和 JSON。保存后生成新版本并重新校验。" },
+    },
+    {
+      path: "/settings",
+      component: SettingsView,
+      meta: { title: "图床设置", desc: "Ozon 只接受公网 HTTPS 媒体地址。未配置时工作台照常运行，上架前需要先补上地址。" },
     },
   ],
 });

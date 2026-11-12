@@ -7,13 +7,24 @@ import type {
   PromptRecord,
   Shop,
   ShopWriteResult,
+  ListingDetail,
+  ListingPage,
+  PublishPlan,
   TaskPage,
   TreeNode,
   WorkbenchTask,
 } from "./types";
 
 export async function fetchMeta() {
-  const { data } = await http.get<{ service: string; mock: boolean; proxy?: string; codex_mock?: boolean; phase: number }>("/meta");
+  const { data } = await http.get<{
+    service: string;
+    mock: boolean;
+    proxy?: string;
+    codex_mock?: boolean;
+    storage_provider?: string;
+    storage_configured?: boolean;
+    phase: number;
+  }>("/meta");
   return data;
 }
 
@@ -173,6 +184,61 @@ export async function followUpTask(id: number, body: { revision: number; content
 
 export async function listTaskEvents(id: number, params: { after_seq?: number; before_seq?: number; limit?: number } = {}) {
   const { data } = await http.get<EventPage>(`/tasks/${id}/events`, { params });
+  return data;
+}
+
+export async function listListings(params: { mode?: string; q?: string; publish_status?: string; platform_status?: string; page?: number; page_size?: number }) {
+  const { data } = await http.get<ListingPage>("/listings", { params });
+  return data;
+}
+
+export async function getListing(id: number) {
+  const { data } = await http.get<ListingDetail>(`/listings/${id}`);
+  return data;
+}
+
+export async function saveListingVersion(id: number, body: { version: number; item_json: Record<string, unknown> }) {
+  const { data } = await http.post<ListingDetail>(`/listings/${id}/versions`, body);
+  return data;
+}
+
+export async function generateListing(id: number) {
+  const { data } = await http.post<ListingDetail>(`/listings/${id}/generate`);
+  return data;
+}
+
+export async function uploadListingMedia(id: number) {
+  const { data } = await http.post<ListingDetail>(`/listings/${id}/media`);
+  return data;
+}
+
+export async function publishListings(body: { items: { id: number; version: number }[]; idempotency_key: string; only_valid?: boolean; execute: boolean }) {
+  const { data } = await http.post<PublishPlan>("/listings/publish", body);
+  return data;
+}
+
+export async function getPublishBatch(id: number) {
+  const { data } = await http.get<NonNullable<PublishPlan["batch"]>>(`/listings/batches/${id}`);
+  return data;
+}
+
+export async function updateListingStock(id: number, body: { warehouse_id: number; stock: number }) {
+  const { data } = await http.post(`/listings/${id}/stocks`, body);
+  return data;
+}
+
+export async function refreshListingPlatform(id: number) {
+  const { data } = await http.post<ListingDetail>(`/listings/${id}/platform`);
+  return data;
+}
+
+export async function fetchStorage() {
+  const { data } = await http.get<{ provider: string; configured: boolean; message: string }>("/storage");
+  return data;
+}
+
+export async function testStorage() {
+  const { data } = await http.post<{ ok: boolean; public_url: string; message: string }>("/storage/test");
   return data;
 }
 

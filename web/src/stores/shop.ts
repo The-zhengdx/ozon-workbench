@@ -13,6 +13,8 @@ export const useShopStore = defineStore("shop", {
     mock: false,
     proxy: "direct",
     codexMock: true,
+    storageProvider: "none",
+    storageConfigured: false,
     loading: false,
     error: "",
   }),
@@ -39,6 +41,8 @@ export const useShopStore = defineStore("shop", {
         this.mock = meta.mock;
         this.proxy = meta.proxy || "direct";
         this.codexMock = meta.codex_mock !== false;
+        this.storageProvider = meta.storage_provider || "none";
+        this.storageConfigured = meta.storage_configured === true;
         this.ensureCurrent();
       } catch (error) {
         this.error = error instanceof Error ? error.message : "店铺列表加载失败";

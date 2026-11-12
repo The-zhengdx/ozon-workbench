@@ -27,16 +27,17 @@ const ozonUserAgent = "ozon-workbench"
 
 // OzonClient calls api-seller.ozon.ru with per-shop Client-Id and Api-Key headers.
 type OzonClient struct {
-	baseURL    string
-	httpClient *http.Client
-	mock       bool
-	proxyMode  string
-	proxyFn    func(*http.Request) (*url.URL, error)
-	proxyLabel string
-	rps        int
-	retryBase  time.Duration
-	mu         sync.Mutex
-	limits     map[string]*rate.Limiter
+	baseURL     string
+	httpClient  *http.Client
+	mock        bool
+	proxyMode   string
+	proxyFn     func(*http.Request) (*url.URL, error)
+	proxyLabel  string
+	rps         int
+	retryBase   time.Duration
+	mu          sync.Mutex
+	limits      map[string]*rate.Limiter
+	stockLimits map[string]*rate.Limiter
 }
 
 func NewOzonClient(baseURL string, timeout time.Duration, rps int, mock bool, proxy string) (*OzonClient, error) {
@@ -63,13 +64,14 @@ func NewOzonClient(baseURL string, timeout time.Duration, rps int, mock bool, pr
 			Timeout:   timeout,
 			Transport: transport,
 		},
-		mock:       mock,
-		proxyMode:  mode,
-		proxyFn:    proxyFn,
-		proxyLabel: label,
-		rps:        rps,
-		retryBase:  time.Second,
-		limits:     map[string]*rate.Limiter{},
+		mock:        mock,
+		proxyMode:   mode,
+		proxyFn:     proxyFn,
+		proxyLabel:  label,
+		rps:         rps,
+		retryBase:   time.Second,
+		limits:      map[string]*rate.Limiter{},
+		stockLimits: map[string]*rate.Limiter{},
 	}, nil
 }
 
@@ -220,7 +222,11 @@ func (c *OzonClient) do(ctx context.Context, path string, cred biz.OzonCred, pay
 		}
 		if resp.StatusCode == http.StatusTooManyRequests && attempt < 2 {
 			last = &ozonStatusError{Status: resp.StatusCode, Message: extractOzonMessage(body)}
-			if err := c.sleep(ctx, c.backoff(attempt, resp.Header.Get("Retry-After"))); err != nil {
+			retryAfter := resp.Header.Get("Retry-After")
+			if v := resp.Header.Get("Item-Retry-After"); v != "" {
+				retryAfter = v
+			}
+			if err := c.sleep(ctx, c.backoff(attempt, retryAfter)); err != nil {
 				return err
 			}
 			continue
@@ -544,6 +550,145 @@ func normalizeValue(v any) any {
 	default:
 		return v
 	}
+}
+
+func (c *OzonClient) waitStock(ctx context.Context, clientID string) error {
+	c.mu.Lock()
+	lim := c.stockLimits[clientID]
+	if lim == nil {
+		// /v2/products/stocks allows about 80 requests per minute per client, on top of the global cap.
+		lim = rate.NewLimiter(rate.Every(time.Minute/80), 1)
+		c.stockLimits[clientID] = lim
+	}
+	c.mu.Unlock()
+	return lim.Wait(ctx)
+}
+
+// ImportProducts posts one /v3/product/import body and returns the task id.
+// A transport failure is reported as AcceptUnknownError because Ozon may already have the batch.
+func (c *OzonClient) ImportProducts(ctx context.Context, cred biz.OzonCred, body json.RawMessage) (string, error) {
+	var resp struct {
+		Result struct {
+			TaskID json.Number `json:"task_id"`
+		} `json:"result"`
+	}
+	err := c.do(ctx, "/v3/product/import", cred, body, &resp)
+	if err != nil {
+		var status *ozonStatusError
+		if errors.As(err, &status) {
+			return "", err
+		}
+		return "", &biz.AcceptUnknownError{Msg: err.Error()}
+	}
+	id := strings.TrimSpace(resp.Result.TaskID.String())
+	if id == "" || id == "0" {
+		return "", fmt.Errorf("Ozon 没有返回 task_id")
+	}
+	return id, nil
+}
+
+// ImportInfo reads /v1/product/import/info and keeps per-offer errors.
+func (c *OzonClient) ImportInfo(ctx context.Context, cred biz.OzonCred, taskID string) ([]biz.ImportOffer, error) {
+	n, err := strconv.ParseInt(strings.TrimSpace(taskID), 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("task_id 不正确")
+	}
+	var resp struct {
+		Result struct {
+			Items []struct {
+				OfferID   string           `json:"offer_id"`
+				ProductID int64            `json:"product_id"`
+				Status    string           `json:"status"`
+				Errors    []map[string]any `json:"errors"`
+			} `json:"items"`
+		} `json:"result"`
+	}
+	if err := c.do(ctx, "/v1/product/import/info", cred, map[string]any{"task_id": n}, &resp); err != nil {
+		return nil, err
+	}
+	out := make([]biz.ImportOffer, 0, len(resp.Result.Items))
+	for _, item := range resp.Result.Items {
+		out = append(out, biz.ImportOffer{
+			OfferID: item.OfferID, ProductID: item.ProductID, Status: item.Status, Errors: item.Errors,
+		})
+	}
+	return out, nil
+}
+
+// ProductInfo reads /v3/product/info/list for platform status and rejection text.
+func (c *OzonClient) ProductInfo(ctx context.Context, cred biz.OzonCred, offerIDs []string) ([]biz.PlatformCard, error) {
+	if len(offerIDs) == 0 {
+		return nil, nil
+	}
+	var resp struct {
+		Items []struct {
+			ID       int64  `json:"id"`
+			OfferID  string `json:"offer_id"`
+			SKU      int64  `json:"sku"`
+			Archived bool   `json:"is_archived"`
+			Statuses struct {
+				Status            string `json:"status"`
+				StatusFailed      string `json:"status_failed"`
+				ModerateStatus    string `json:"moderate_status"`
+				StatusName        string `json:"status_name"`
+				StatusDescription string `json:"status_description"`
+				StatusTooltip     string `json:"status_tooltip"`
+			} `json:"statuses"`
+		} `json:"items"`
+		Result struct {
+			Items []json.RawMessage `json:"items"`
+		} `json:"result"`
+	}
+	if err := c.do(ctx, "/v3/product/info/list", cred, map[string]any{"offer_id": offerIDs}, &resp); err != nil {
+		return nil, err
+	}
+	out := make([]biz.PlatformCard, 0, len(resp.Items))
+	for _, item := range resp.Items {
+		out = append(out, biz.PlatformCard{
+			OfferID: item.OfferID, ProductID: item.ID, SKU: item.SKU, Archived: item.Archived,
+			Status: item.Statuses.Status, Moderate: item.Statuses.ModerateStatus, Failed: item.Statuses.StatusFailed,
+			Name: item.Statuses.StatusName, Description: item.Statuses.StatusDescription, Tooltip: item.Statuses.StatusTooltip,
+		})
+	}
+	return out, nil
+}
+
+// UpdateStocks calls the current POST /v2/products/stocks. /v1/product/import/stocks is deprecated.
+// quant_size was removed in June 2025 and is not sent. One pair is also locally spaced to 30 seconds by the usecase.
+func (c *OzonClient) UpdateStocks(ctx context.Context, cred biz.OzonCred, lines []biz.StockLine) ([]biz.StockLineResult, error) {
+	if err := c.waitStock(ctx, strings.TrimSpace(cred.ClientID)); err != nil {
+		return nil, err
+	}
+	payload := make([]map[string]any, 0, len(lines))
+	for _, line := range lines {
+		payload = append(payload, map[string]any{
+			"offer_id": line.OfferID, "product_id": line.ProductID, "stock": line.Stock, "warehouse_id": line.WarehouseID,
+		})
+	}
+	var resp struct {
+		Result []struct {
+			OfferID     string `json:"offer_id"`
+			ProductID   int64  `json:"product_id"`
+			WarehouseID int64  `json:"warehouse_id"`
+			Updated     bool   `json:"updated"`
+			Errors      []struct {
+				Code    string `json:"code"`
+				Message string `json:"message"`
+			} `json:"errors"`
+		} `json:"result"`
+	}
+	if err := c.do(ctx, "/v2/products/stocks", cred, map[string]any{"stocks": payload}, &resp); err != nil {
+		return nil, err
+	}
+	out := make([]biz.StockLineResult, 0, len(resp.Result))
+	for _, row := range resp.Result {
+		item := biz.StockLineResult{OfferID: row.OfferID, ProductID: row.ProductID, WarehouseID: row.WarehouseID, Updated: row.Updated}
+		for _, e := range row.Errors {
+			item.Errors = append(item.Errors, map[string]any{"code": e.Code, "message": e.Message})
+		}
+		out = append(out, item)
+	}
+	return out, nil
 }
 
 func int64From(v any) int64 {

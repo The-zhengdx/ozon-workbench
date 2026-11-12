@@ -137,7 +137,7 @@ func (uc *TaskUsecase) runVisual(ctx context.Context, shopID, id int) {
 				return
 			}
 			if saved.Status == StatusCompleted {
-				writeApprovedPlan(saved)
+				uc.noteCompleted(ctx, saved)
 			}
 			return
 		}

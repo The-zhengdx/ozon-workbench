@@ -84,7 +84,8 @@ func (r *shopRepo) Update(ctx context.Context, shop *biz.Shop) (*biz.Shop, error
 		SetArchived(shop.Archived).
 		SetNillableLastTestedAt(shop.LastTestedAt).
 		SetNillableLastTestOk(shop.LastTestOK).
-		SetNillableLastTestMessage(shop.LastTestMessage)
+		SetNillableLastTestMessage(shop.LastTestMessage).
+		SetNillableCurrencyCode(shop.CurrencyCode)
 	if shop.WarehousesSyncedAt != nil {
 		update.SetWarehousesSyncedAt(*shop.WarehousesSyncedAt)
 	} else {

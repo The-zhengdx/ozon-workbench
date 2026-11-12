@@ -7,7 +7,23 @@ const (
 	StageResume   = "resume"
 	StageVisual   = "visual"
 	StageFollowUp = "follow_up"
+	StageListing  = "listing"
 )
+
+// ListingFacts is the confirmed product data Codex turns into one import item.
+type ListingFacts struct {
+	OfferID               string
+	Specs                 string
+	Title                 string
+	Currency              string
+	Price                 string
+	PrimaryImage          string
+	Images                []string
+	DescriptionCategoryID int64
+	TypeID                int64
+	Attributes            []map[string]any
+	Answers               map[string]string
+}
 
 // RunRequest is one turn sent to Codex. SessionID is empty for the first turn.
 type RunRequest struct {
@@ -18,6 +34,7 @@ type RunRequest struct {
 	WorkDir    string
 	Answers    map[string]string
 	Attributes []map[string]any
+	Listing    *ListingFacts
 }
 
 // RunnerMessage is one timeline line produced by a runner before redaction.

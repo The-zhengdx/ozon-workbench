@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 
 	"ozon-workbench/internal/biz"
 	"ozon-workbench/internal/catalog"
@@ -45,6 +46,14 @@ func (mockTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		return mockValues(body), nil
 	case strings.HasSuffix(path, "/v1/description-category/attribute"):
 		return mockAttributes(body), nil
+	case strings.HasSuffix(path, "/v3/product/import"):
+		return mockProductImport(body), nil
+	case strings.HasSuffix(path, "/v1/product/import/info"):
+		return mockImportInfo(body), nil
+	case strings.HasSuffix(path, "/v3/product/info/list"):
+		return mockProductInfo(body), nil
+	case strings.HasSuffix(path, "/v2/products/stocks"):
+		return mockStocks(body), nil
 	default:
 		return mockJSON(http.StatusNotFound, map[string]any{"code": 5, "message": "mock 未实现该 Ozon 方法: " + path}), nil
 	}
@@ -191,6 +200,141 @@ func mockValueSearch(body []byte) *http.Response {
 		matched = []catalog.DictEntry{}
 	}
 	return mockJSON(http.StatusOK, map[string]any{"result": matched})
+}
+
+type mockOffer struct {
+	OfferID string
+	Fail    bool
+}
+
+var (
+	mockImportMu  sync.Mutex
+	mockImportSeq int64
+	mockImports   = map[int64][]mockOffer{}
+)
+
+func mockProductImport(body []byte) *http.Response {
+	var req struct {
+		Items []struct {
+			OfferID string `json:"offer_id"`
+		} `json:"items"`
+	}
+	_ = json.Unmarshal(body, &req)
+	if len(req.Items) == 0 || len(req.Items) > 100 {
+		return mockJSON(http.StatusBadRequest, map[string]any{"code": 3, "message": "items 必须为 1 到 100 个"})
+	}
+	mockImportMu.Lock()
+	mockImportSeq++
+	id := mockImportSeq
+	offers := make([]mockOffer, len(req.Items))
+	for i, item := range req.Items {
+		offers[i] = mockOffer{OfferID: item.OfferID, Fail: strings.Contains(item.OfferID, "FAIL")}
+	}
+	mockImports[id] = offers
+	mockImportMu.Unlock()
+	return mockJSON(http.StatusOK, map[string]any{"result": map[string]any{"task_id": id}})
+}
+
+func mockImportInfo(body []byte) *http.Response {
+	var req struct {
+		TaskID int64 `json:"task_id"`
+	}
+	_ = json.Unmarshal(body, &req)
+	mockImportMu.Lock()
+	offers := mockImports[req.TaskID]
+	mockImportMu.Unlock()
+	if offers == nil {
+		return mockJSON(http.StatusNotFound, map[string]any{"code": 5, "message": "task 不存在"})
+	}
+	items := make([]map[string]any, 0, len(offers))
+	for i, offer := range offers {
+		if offer.Fail {
+			items = append(items, map[string]any{
+				"offer_id": offer.OfferID, "product_id": 0, "status": "failed",
+				"errors": []map[string]any{{
+					"code": "INVALID_IMAGE", "message": "Не удалось загрузить изображение",
+					"field": "primary_image", "description": "URL недоступен",
+				}},
+			})
+			continue
+		}
+		items = append(items, map[string]any{
+			"offer_id": offer.OfferID, "product_id": 800000 + int64(i) + req.TaskID, "status": "imported", "errors": []any{},
+		})
+	}
+	return mockJSON(http.StatusOK, map[string]any{"result": map[string]any{"items": items, "total": len(items)}})
+}
+
+func mockProductInfo(body []byte) *http.Response {
+	var req struct {
+		OfferID []string `json:"offer_id"`
+	}
+	_ = json.Unmarshal(body, &req)
+	mockImportMu.Lock()
+	defer mockImportMu.Unlock()
+	items := make([]map[string]any, 0, len(req.OfferID))
+	for _, offer := range req.OfferID {
+		fail := strings.Contains(offer, "FAIL")
+		found := false
+		for _, batch := range mockImports {
+			for _, row := range batch {
+				if row.OfferID == offer {
+					fail = row.Fail
+					found = true
+				}
+			}
+		}
+		if !found && !fail {
+			continue
+		}
+		if fail {
+			items = append(items, map[string]any{
+				"id": 0, "offer_id": offer, "sku": 0, "is_archived": false,
+				"statuses": map[string]any{
+					"status": "failed", "status_failed": "图片不符合要求", "moderate_status": "declined",
+					"status_name": "Не продается", "status_description": "主图无法打开", "status_tooltip": "请更换公网 HTTPS 图片",
+				},
+			})
+			continue
+		}
+		items = append(items, map[string]any{
+			"id": 900100, "offer_id": offer, "sku": 700100, "is_archived": false,
+			"statuses": map[string]any{
+				"status": "price_sent", "status_failed": "", "moderate_status": "approved",
+				"status_name": "Продается", "status_description": "", "status_tooltip": "",
+			},
+		})
+	}
+	return mockJSON(http.StatusOK, map[string]any{"items": items})
+}
+
+func mockStocks(body []byte) *http.Response {
+	var req struct {
+		Stocks []struct {
+			OfferID     string `json:"offer_id"`
+			ProductID   int64  `json:"product_id"`
+			Stock       int    `json:"stock"`
+			WarehouseID int64  `json:"warehouse_id"`
+		} `json:"stocks"`
+	}
+	_ = json.Unmarshal(body, &req)
+	if len(req.Stocks) == 0 || len(req.Stocks) > 100 {
+		return mockJSON(http.StatusBadRequest, map[string]any{"code": 3, "message": "stocks 必须为 1 到 100 对"})
+	}
+	result := make([]map[string]any, 0, len(req.Stocks))
+	for _, line := range req.Stocks {
+		if line.Stock < 0 {
+			result = append(result, map[string]any{
+				"offer_id": line.OfferID, "product_id": line.ProductID, "warehouse_id": line.WarehouseID, "updated": false,
+				"errors": []map[string]any{{"code": "INVALID_STOCK", "message": "库存不能为负"}},
+			})
+			continue
+		}
+		result = append(result, map[string]any{
+			"offer_id": line.OfferID, "product_id": line.ProductID, "warehouse_id": line.WarehouseID, "updated": true, "errors": []any{},
+		})
+	}
+	return mockJSON(http.StatusOK, map[string]any{"result": result})
 }
 
 func mockJSON(status int, payload any) *http.Response {

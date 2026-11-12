@@ -63,7 +63,10 @@ function onSwitch(value: number) {
             <span class="mobileName">{{ item.short }}</span>
           </router-link>
         </nav>
-        <div class="railfoot"><span class="dot"></span>本地工作台</div>
+        <div class="railfoot">
+          <router-link to="/settings">图床设置</router-link>
+          <div><span class="dot"></span>本地工作台</div>
+        </div>
       </aside>
       <main class="min-w-0">
         <header class="top">
@@ -87,6 +90,9 @@ function onSwitch(value: number) {
             <span v-if="shop.mock" class="status warm">模拟模式 · 仓库是内置示例</span>
             <span v-else class="status ready">真实 Ozon · {{ shop.proxyLabel }}</span>
             <span class="status" :class="shop.codexMock ? 'warm' : 'ready'">{{ shop.codexMock ? "Codex 模拟" : "本地 Codex" }}</span>
+            <router-link to="/settings" class="status" :class="shop.storageConfigured ? 'ok' : 'warm'">
+              {{ shop.storageConfigured ? `图床 ${shop.storageProvider}` : "图床未配置" }}
+            </router-link>
           </div>
         </header>
         <section class="content">

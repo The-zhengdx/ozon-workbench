@@ -18,6 +18,7 @@ type Config struct {
 	Security Security `yaml:"security"`
 	Media    Media    `yaml:"media"`
 	Codex    Codex    `yaml:"codex"`
+	Storage  Storage  `yaml:"storage"`
 }
 
 type Server struct {
@@ -54,6 +55,21 @@ type Media struct {
 	MaxFileCount         int    `yaml:"max_file_count"`
 }
 
+// Storage selects the public media host. Provider is empty or "none" until the operator configures one.
+// The Yandex token is read from the environment so it is never committed.
+type Storage struct {
+	Provider string `yaml:"provider"`
+	Yandex   Yandex `yaml:"yandex"`
+	// PublicBase is only used by the mock provider.
+	PublicBase string `yaml:"public_base"`
+}
+
+type Yandex struct {
+	Token   string `yaml:"token"`
+	Root    string `yaml:"root"`
+	APIBase string `yaml:"api_base"`
+}
+
 // Codex configures the local Codex CLI. Mock is the default for development and CI.
 type Codex struct {
 	Mock       bool     `yaml:"mock"`
@@ -85,6 +101,11 @@ type Runtime struct {
 	CodexWorkers         int
 	CodexNewArgs         []string
 	CodexResumeArgs      []string
+	StorageProvider      string
+	StoragePublicBase    string
+	YandexToken          string
+	YandexRoot           string
+	YandexAPIBase        string
 }
 
 // Load reads YAML then applies environment overrides.
@@ -151,6 +172,21 @@ func Load(path string) (*Runtime, error) {
 	}
 	if v := strings.TrimSpace(os.Getenv("CODEX_TIMEOUT")); v != "" {
 		cfg.Codex.Timeout = v
+	}
+	if v, ok := os.LookupEnv("STORAGE_PROVIDER"); ok {
+		cfg.Storage.Provider = strings.TrimSpace(v)
+	}
+	if v := strings.TrimSpace(os.Getenv("YANDEX_DISK_TOKEN")); v != "" {
+		cfg.Storage.Yandex.Token = v
+	}
+	if v := strings.TrimSpace(os.Getenv("YANDEX_DISK_ROOT")); v != "" {
+		cfg.Storage.Yandex.Root = v
+	}
+	if v := strings.TrimSpace(os.Getenv("YANDEX_DISK_API")); v != "" {
+		cfg.Storage.Yandex.APIBase = v
+	}
+	if v := strings.TrimSpace(os.Getenv("STORAGE_PUBLIC_BASE")); v != "" {
+		cfg.Storage.PublicBase = v
 	}
 	if strings.TrimSpace(cfg.Data.Database.DSN) == "" {
 		return nil, fmt.Errorf("未配置数据库连接，请设置 data.database.dsn 或 DATABASE_URL")
@@ -221,6 +257,11 @@ func Load(path string) (*Runtime, error) {
 		CodexWorkers:         cfg.Codex.Workers,
 		CodexNewArgs:         cfg.Codex.NewArgs,
 		CodexResumeArgs:      cfg.Codex.ResumeArgs,
+		StorageProvider:      strings.ToLower(strings.TrimSpace(cfg.Storage.Provider)),
+		StoragePublicBase:    strings.TrimSpace(cfg.Storage.PublicBase),
+		YandexToken:          strings.TrimSpace(cfg.Storage.Yandex.Token),
+		YandexRoot:           strings.Trim(strings.TrimSpace(cfg.Storage.Yandex.Root), "/"),
+		YandexAPIBase:        strings.TrimRight(strings.TrimSpace(cfg.Storage.Yandex.APIBase), "/"),
 	}, nil
 }
 
