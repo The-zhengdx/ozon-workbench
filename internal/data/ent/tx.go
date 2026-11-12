@@ -24,6 +24,10 @@ type Tx struct {
 	DictionarySnapshot *DictionarySnapshotClient
 	// Shop is the client for interacting with the Shop builders.
 	Shop *ShopClient
+	// TaskEvent is the client for interacting with the TaskEvent builders.
+	TaskEvent *TaskEventClient
+	// WorkbenchTask is the client for interacting with the WorkbenchTask builders.
+	WorkbenchTask *WorkbenchTaskClient
 
 	// lazily loaded.
 	client     *Client
@@ -161,6 +165,8 @@ func (tx *Tx) init() {
 	tx.CategorySnapshot = NewCategorySnapshotClient(tx.config)
 	tx.DictionarySnapshot = NewDictionarySnapshotClient(tx.config)
 	tx.Shop = NewShopClient(tx.config)
+	tx.TaskEvent = NewTaskEventClient(tx.config)
+	tx.WorkbenchTask = NewWorkbenchTaskClient(tx.config)
 }
 
 // txDriver wraps the given dialect.Tx with a nop dialect.Driver implementation.

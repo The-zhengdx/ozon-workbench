@@ -85,7 +85,7 @@ function onSwitch(value: number) {
           </div>
           <div class="demo">
             <span class="dot" :class="{ bad: !shop.mock }"></span>
-            {{ shop.mock ? "模拟 Ozon · 类目可同步" : "官方 Ozon · 类目可同步" }}
+            {{ shop.mock ? "模拟 Ozon" : "官方 Ozon" }} · {{ shop.codexMock ? "Codex 模拟" : "本地 Codex" }}
           </div>
         </header>
         <section class="content">

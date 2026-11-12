@@ -11,6 +11,7 @@ export const useShopStore = defineStore("shop", {
     shops: [] as Shop[],
     currentShopId: null as number | null,
     mock: true,
+    codexMock: true,
     loading: false,
     error: "",
   }),
@@ -30,6 +31,7 @@ export const useShopStore = defineStore("shop", {
         const [shops, meta] = await Promise.all([listShops(), fetchMeta()]);
         this.shops = shops;
         this.mock = meta.mock;
+        this.codexMock = meta.codex_mock !== false;
         this.ensureCurrent();
       } catch (error) {
         this.error = error instanceof Error ? error.message : "店铺列表加载失败";

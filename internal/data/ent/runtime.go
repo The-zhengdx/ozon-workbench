@@ -9,6 +9,8 @@ import (
 	"ozon-workbench/internal/data/ent/categorysnapshot"
 	"ozon-workbench/internal/data/ent/dictionarysnapshot"
 	"ozon-workbench/internal/data/ent/shop"
+	"ozon-workbench/internal/data/ent/taskevent"
+	"ozon-workbench/internal/data/ent/workbenchtask"
 	"ozon-workbench/internal/data/schema"
 	"time"
 )
@@ -293,4 +295,204 @@ func init() {
 	shop.DefaultUpdatedAt = shopDescUpdatedAt.Default.(func() time.Time)
 	// shop.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	shop.UpdateDefaultUpdatedAt = shopDescUpdatedAt.UpdateDefault.(func() time.Time)
+	taskeventFields := schema.TaskEvent{}.Fields()
+	_ = taskeventFields
+	// taskeventDescSessionID is the schema descriptor for session_id field.
+	taskeventDescSessionID := taskeventFields[2].Descriptor()
+	// taskevent.DefaultSessionID holds the default value on creation for the session_id field.
+	taskevent.DefaultSessionID = taskeventDescSessionID.Default.(string)
+	// taskevent.SessionIDValidator is a validator for the "session_id" field. It is called by the builders before save.
+	taskevent.SessionIDValidator = taskeventDescSessionID.Validators[0].(func(string) error)
+	// taskeventDescRole is the schema descriptor for role field.
+	taskeventDescRole := taskeventFields[4].Descriptor()
+	// taskevent.RoleValidator is a validator for the "role" field. It is called by the builders before save.
+	taskevent.RoleValidator = func() func(string) error {
+		validators := taskeventDescRole.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(role string) error {
+			for _, fn := range fns {
+				if err := fn(role); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// taskeventDescStage is the schema descriptor for stage field.
+	taskeventDescStage := taskeventFields[5].Descriptor()
+	// taskevent.DefaultStage holds the default value on creation for the stage field.
+	taskevent.DefaultStage = taskeventDescStage.Default.(string)
+	// taskevent.StageValidator is a validator for the "stage" field. It is called by the builders before save.
+	taskevent.StageValidator = taskeventDescStage.Validators[0].(func(string) error)
+	// taskeventDescContent is the schema descriptor for content field.
+	taskeventDescContent := taskeventFields[6].Descriptor()
+	// taskevent.DefaultContent holds the default value on creation for the content field.
+	taskevent.DefaultContent = taskeventDescContent.Default.(string)
+	// taskeventDescToolCallID is the schema descriptor for tool_call_id field.
+	taskeventDescToolCallID := taskeventFields[7].Descriptor()
+	// taskevent.DefaultToolCallID holds the default value on creation for the tool_call_id field.
+	taskevent.DefaultToolCallID = taskeventDescToolCallID.Default.(string)
+	// taskevent.ToolCallIDValidator is a validator for the "tool_call_id" field. It is called by the builders before save.
+	taskevent.ToolCallIDValidator = taskeventDescToolCallID.Validators[0].(func(string) error)
+	// taskeventDescResourceRef is the schema descriptor for resource_ref field.
+	taskeventDescResourceRef := taskeventFields[8].Descriptor()
+	// taskevent.DefaultResourceRef holds the default value on creation for the resource_ref field.
+	taskevent.DefaultResourceRef = taskeventDescResourceRef.Default.(string)
+	// taskevent.ResourceRefValidator is a validator for the "resource_ref" field. It is called by the builders before save.
+	taskevent.ResourceRefValidator = taskeventDescResourceRef.Validators[0].(func(string) error)
+	// taskeventDescCreatedAt is the schema descriptor for created_at field.
+	taskeventDescCreatedAt := taskeventFields[9].Descriptor()
+	// taskevent.DefaultCreatedAt holds the default value on creation for the created_at field.
+	taskevent.DefaultCreatedAt = taskeventDescCreatedAt.Default.(func() time.Time)
+	workbenchtaskFields := schema.WorkbenchTask{}.Fields()
+	_ = workbenchtaskFields
+	// workbenchtaskDescCategoryNodeID is the schema descriptor for category_node_id field.
+	workbenchtaskDescCategoryNodeID := workbenchtaskFields[1].Descriptor()
+	// workbenchtask.DefaultCategoryNodeID holds the default value on creation for the category_node_id field.
+	workbenchtask.DefaultCategoryNodeID = workbenchtaskDescCategoryNodeID.Default.(int)
+	// workbenchtaskDescLanguage is the schema descriptor for language field.
+	workbenchtaskDescLanguage := workbenchtaskFields[4].Descriptor()
+	// workbenchtask.DefaultLanguage holds the default value on creation for the language field.
+	workbenchtask.DefaultLanguage = workbenchtaskDescLanguage.Default.(string)
+	// workbenchtask.LanguageValidator is a validator for the "language" field. It is called by the builders before save.
+	workbenchtask.LanguageValidator = workbenchtaskDescLanguage.Validators[0].(func(string) error)
+	// workbenchtaskDescTypeName is the schema descriptor for type_name field.
+	workbenchtaskDescTypeName := workbenchtaskFields[5].Descriptor()
+	// workbenchtask.DefaultTypeName holds the default value on creation for the type_name field.
+	workbenchtask.DefaultTypeName = workbenchtaskDescTypeName.Default.(string)
+	// workbenchtask.TypeNameValidator is a validator for the "type_name" field. It is called by the builders before save.
+	workbenchtask.TypeNameValidator = workbenchtaskDescTypeName.Validators[0].(func(string) error)
+	// workbenchtaskDescMasterSku is the schema descriptor for master_sku field.
+	workbenchtaskDescMasterSku := workbenchtaskFields[7].Descriptor()
+	// workbenchtask.MasterSkuValidator is a validator for the "master_sku" field. It is called by the builders before save.
+	workbenchtask.MasterSkuValidator = func() func(string) error {
+		validators := workbenchtaskDescMasterSku.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(master_sku string) error {
+			for _, fn := range fns {
+				if err := fn(master_sku); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// workbenchtaskDescSupplierURL is the schema descriptor for supplier_url field.
+	workbenchtaskDescSupplierURL := workbenchtaskFields[8].Descriptor()
+	// workbenchtask.DefaultSupplierURL holds the default value on creation for the supplier_url field.
+	workbenchtask.DefaultSupplierURL = workbenchtaskDescSupplierURL.Default.(string)
+	// workbenchtask.SupplierURLValidator is a validator for the "supplier_url" field. It is called by the builders before save.
+	workbenchtask.SupplierURLValidator = workbenchtaskDescSupplierURL.Validators[0].(func(string) error)
+	// workbenchtaskDescZipFilename is the schema descriptor for zip_filename field.
+	workbenchtaskDescZipFilename := workbenchtaskFields[9].Descriptor()
+	// workbenchtask.DefaultZipFilename holds the default value on creation for the zip_filename field.
+	workbenchtask.DefaultZipFilename = workbenchtaskDescZipFilename.Default.(string)
+	// workbenchtask.ZipFilenameValidator is a validator for the "zip_filename" field. It is called by the builders before save.
+	workbenchtask.ZipFilenameValidator = workbenchtaskDescZipFilename.Validators[0].(func(string) error)
+	// workbenchtaskDescZipLocalPath is the schema descriptor for zip_local_path field.
+	workbenchtaskDescZipLocalPath := workbenchtaskFields[10].Descriptor()
+	// workbenchtask.DefaultZipLocalPath holds the default value on creation for the zip_local_path field.
+	workbenchtask.DefaultZipLocalPath = workbenchtaskDescZipLocalPath.Default.(string)
+	// workbenchtask.ZipLocalPathValidator is a validator for the "zip_local_path" field. It is called by the builders before save.
+	workbenchtask.ZipLocalPathValidator = workbenchtaskDescZipLocalPath.Validators[0].(func(string) error)
+	// workbenchtaskDescAutoTextApprove is the schema descriptor for auto_text_approve field.
+	workbenchtaskDescAutoTextApprove := workbenchtaskFields[11].Descriptor()
+	// workbenchtask.DefaultAutoTextApprove holds the default value on creation for the auto_text_approve field.
+	workbenchtask.DefaultAutoTextApprove = workbenchtaskDescAutoTextApprove.Default.(bool)
+	// workbenchtaskDescAutoVisualApprove is the schema descriptor for auto_visual_approve field.
+	workbenchtaskDescAutoVisualApprove := workbenchtaskFields[12].Descriptor()
+	// workbenchtask.DefaultAutoVisualApprove holds the default value on creation for the auto_visual_approve field.
+	workbenchtask.DefaultAutoVisualApprove = workbenchtaskDescAutoVisualApprove.Default.(bool)
+	// workbenchtaskDescTextApproved is the schema descriptor for text_approved field.
+	workbenchtaskDescTextApproved := workbenchtaskFields[13].Descriptor()
+	// workbenchtask.DefaultTextApproved holds the default value on creation for the text_approved field.
+	workbenchtask.DefaultTextApproved = workbenchtaskDescTextApproved.Default.(bool)
+	// workbenchtaskDescTextApprovedAuto is the schema descriptor for text_approved_auto field.
+	workbenchtaskDescTextApprovedAuto := workbenchtaskFields[14].Descriptor()
+	// workbenchtask.DefaultTextApprovedAuto holds the default value on creation for the text_approved_auto field.
+	workbenchtask.DefaultTextApprovedAuto = workbenchtaskDescTextApprovedAuto.Default.(bool)
+	// workbenchtaskDescVisualApproved is the schema descriptor for visual_approved field.
+	workbenchtaskDescVisualApproved := workbenchtaskFields[15].Descriptor()
+	// workbenchtask.DefaultVisualApproved holds the default value on creation for the visual_approved field.
+	workbenchtask.DefaultVisualApproved = workbenchtaskDescVisualApproved.Default.(bool)
+	// workbenchtaskDescVisualApprovedAuto is the schema descriptor for visual_approved_auto field.
+	workbenchtaskDescVisualApprovedAuto := workbenchtaskFields[16].Descriptor()
+	// workbenchtask.DefaultVisualApprovedAuto holds the default value on creation for the visual_approved_auto field.
+	workbenchtask.DefaultVisualApprovedAuto = workbenchtaskDescVisualApprovedAuto.Default.(bool)
+	// workbenchtaskDescStatus is the schema descriptor for status field.
+	workbenchtaskDescStatus := workbenchtaskFields[17].Descriptor()
+	// workbenchtask.DefaultStatus holds the default value on creation for the status field.
+	workbenchtask.DefaultStatus = workbenchtaskDescStatus.Default.(string)
+	// workbenchtask.StatusValidator is a validator for the "status" field. It is called by the builders before save.
+	workbenchtask.StatusValidator = workbenchtaskDescStatus.Validators[0].(func(string) error)
+	// workbenchtaskDescPhase is the schema descriptor for phase field.
+	workbenchtaskDescPhase := workbenchtaskFields[18].Descriptor()
+	// workbenchtask.DefaultPhase holds the default value on creation for the phase field.
+	workbenchtask.DefaultPhase = workbenchtaskDescPhase.Default.(string)
+	// workbenchtask.PhaseValidator is a validator for the "phase" field. It is called by the builders before save.
+	workbenchtask.PhaseValidator = workbenchtaskDescPhase.Validators[0].(func(string) error)
+	// workbenchtaskDescCodexSessionID is the schema descriptor for codex_session_id field.
+	workbenchtaskDescCodexSessionID := workbenchtaskFields[19].Descriptor()
+	// workbenchtask.DefaultCodexSessionID holds the default value on creation for the codex_session_id field.
+	workbenchtask.DefaultCodexSessionID = workbenchtaskDescCodexSessionID.Default.(string)
+	// workbenchtask.CodexSessionIDValidator is a validator for the "codex_session_id" field. It is called by the builders before save.
+	workbenchtask.CodexSessionIDValidator = workbenchtaskDescCodexSessionID.Validators[0].(func(string) error)
+	// workbenchtaskDescRevision is the schema descriptor for revision field.
+	workbenchtaskDescRevision := workbenchtaskFields[20].Descriptor()
+	// workbenchtask.DefaultRevision holds the default value on creation for the revision field.
+	workbenchtask.DefaultRevision = workbenchtaskDescRevision.Default.(int64)
+	// workbenchtaskDescMissingFields is the schema descriptor for missing_fields field.
+	workbenchtaskDescMissingFields := workbenchtaskFields[21].Descriptor()
+	// workbenchtask.DefaultMissingFields holds the default value on creation for the missing_fields field.
+	workbenchtask.DefaultMissingFields = workbenchtaskDescMissingFields.Default.(string)
+	// workbenchtaskDescInputValues is the schema descriptor for input_values field.
+	workbenchtaskDescInputValues := workbenchtaskFields[22].Descriptor()
+	// workbenchtask.DefaultInputValues holds the default value on creation for the input_values field.
+	workbenchtask.DefaultInputValues = workbenchtaskDescInputValues.Default.(string)
+	// workbenchtaskDescSubSkus is the schema descriptor for sub_skus field.
+	workbenchtaskDescSubSkus := workbenchtaskFields[23].Descriptor()
+	// workbenchtask.DefaultSubSkus holds the default value on creation for the sub_skus field.
+	workbenchtask.DefaultSubSkus = workbenchtaskDescSubSkus.Default.(string)
+	// workbenchtaskDescTextDraft is the schema descriptor for text_draft field.
+	workbenchtaskDescTextDraft := workbenchtaskFields[24].Descriptor()
+	// workbenchtask.DefaultTextDraft holds the default value on creation for the text_draft field.
+	workbenchtask.DefaultTextDraft = workbenchtaskDescTextDraft.Default.(string)
+	// workbenchtaskDescVisualPlan is the schema descriptor for visual_plan field.
+	workbenchtaskDescVisualPlan := workbenchtaskFields[25].Descriptor()
+	// workbenchtask.DefaultVisualPlan holds the default value on creation for the visual_plan field.
+	workbenchtask.DefaultVisualPlan = workbenchtaskDescVisualPlan.Default.(string)
+	// workbenchtaskDescAttributesJSON is the schema descriptor for attributes_json field.
+	workbenchtaskDescAttributesJSON := workbenchtaskFields[26].Descriptor()
+	// workbenchtask.DefaultAttributesJSON holds the default value on creation for the attributes_json field.
+	workbenchtask.DefaultAttributesJSON = workbenchtaskDescAttributesJSON.Default.(string)
+	// workbenchtaskDescPromptTemplate is the schema descriptor for prompt_template field.
+	workbenchtaskDescPromptTemplate := workbenchtaskFields[27].Descriptor()
+	// workbenchtask.DefaultPromptTemplate holds the default value on creation for the prompt_template field.
+	workbenchtask.DefaultPromptTemplate = workbenchtaskDescPromptTemplate.Default.(string)
+	// workbenchtaskDescRenderedPrompt is the schema descriptor for rendered_prompt field.
+	workbenchtaskDescRenderedPrompt := workbenchtaskFields[28].Descriptor()
+	// workbenchtask.DefaultRenderedPrompt holds the default value on creation for the rendered_prompt field.
+	workbenchtask.DefaultRenderedPrompt = workbenchtaskDescRenderedPrompt.Default.(string)
+	// workbenchtaskDescErrorMessage is the schema descriptor for error_message field.
+	workbenchtaskDescErrorMessage := workbenchtaskFields[29].Descriptor()
+	// workbenchtask.DefaultErrorMessage holds the default value on creation for the error_message field.
+	workbenchtask.DefaultErrorMessage = workbenchtaskDescErrorMessage.Default.(string)
+	// workbenchtask.ErrorMessageValidator is a validator for the "error_message" field. It is called by the builders before save.
+	workbenchtask.ErrorMessageValidator = workbenchtaskDescErrorMessage.Validators[0].(func(string) error)
+	// workbenchtaskDescCreatedAt is the schema descriptor for created_at field.
+	workbenchtaskDescCreatedAt := workbenchtaskFields[30].Descriptor()
+	// workbenchtask.DefaultCreatedAt holds the default value on creation for the created_at field.
+	workbenchtask.DefaultCreatedAt = workbenchtaskDescCreatedAt.Default.(func() time.Time)
+	// workbenchtaskDescUpdatedAt is the schema descriptor for updated_at field.
+	workbenchtaskDescUpdatedAt := workbenchtaskFields[31].Descriptor()
+	// workbenchtask.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	workbenchtask.DefaultUpdatedAt = workbenchtaskDescUpdatedAt.Default.(func() time.Time)
+	// workbenchtask.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	workbenchtask.UpdateDefaultUpdatedAt = workbenchtaskDescUpdatedAt.UpdateDefault.(func() time.Time)
 }

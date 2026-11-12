@@ -3,6 +3,7 @@ import { createRouter, createWebHistory } from "vue-router";
 import CategoriesView from "../views/CategoriesView.vue";
 import ShopsView from "../views/ShopsView.vue";
 import SoonView from "../views/SoonView.vue";
+import TasksView from "../views/TasksView.vue";
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -20,9 +21,8 @@ export const router = createRouter({
     },
     {
       path: "/tasks",
-      component: SoonView,
-      props: { phase: "下一阶段", detail: "素材加工、1688 压缩包和 Codex 会话不在本次范围内。" },
-      meta: { title: "素材加工工作台", desc: "管理素材审核策略，追踪每个任务的完整 AI 会话。" },
+      component: TasksView,
+      meta: { title: "素材加工工作台", desc: "上传 1688 素材包，按任务审核文案和视觉方案，并在同一 Codex 会话里追问。" },
     },
     {
       path: "/listings",

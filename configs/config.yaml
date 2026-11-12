@@ -1,6 +1,6 @@
 server:
   http_addr: 0.0.0.0:18081
-  timeout: 60s
+  timeout: 180s
 data:
   database:
     dsn: postgres://ozon:ozon@127.0.0.1:5432/ozon_workbench?sslmode=disable
@@ -12,3 +12,46 @@ ozon:
 security:
   # 留空时只从环境变量 OZON_CREDENTIAL_KEY 读取，仓库中不存放可用的生产密钥。
   credential_key: ""
+media:
+  # 1688 压缩包解压后的目录。上传的 zip 在解压成功或失败后都会删除。
+  root: data/media
+  max_zip_bytes: 209715200
+  max_uncompressed_bytes: 524288000
+  max_file_count: 4000
+codex:
+  # 开发默认使用模拟运行器。设为 false 后才调用本机 Codex CLI。
+  mock: true
+  binary: codex
+  timeout: 15m
+  workers: 2
+  # 非交互执行。末尾的 "-" 表示提示词从 stdin 读取。
+  # 文档：https://learn.chatgpt.com/docs/non-interactive-mode
+  new_args:
+    - exec
+    - --json
+    - --skip-git-repo-check
+    - --color
+    - never
+    - --sandbox
+    - workspace-write
+    - -C
+    - "{{work_dir}}"
+    - -o
+    - "{{last_message}}"
+    - "-"
+  # 同一会话追问：codex exec resume <SESSION_ID> --json ... -
+  resume_args:
+    - exec
+    - resume
+    - "{{session_id}}"
+    - --json
+    - --skip-git-repo-check
+    - --color
+    - never
+    - --sandbox
+    - workspace-write
+    - -C
+    - "{{work_dir}}"
+    - -o
+    - "{{last_message}}"
+    - "-"

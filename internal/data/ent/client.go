@@ -17,6 +17,8 @@ import (
 	"ozon-workbench/internal/data/ent/categorysnapshot"
 	"ozon-workbench/internal/data/ent/dictionarysnapshot"
 	"ozon-workbench/internal/data/ent/shop"
+	"ozon-workbench/internal/data/ent/taskevent"
+	"ozon-workbench/internal/data/ent/workbenchtask"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
@@ -40,6 +42,10 @@ type Client struct {
 	DictionarySnapshot *DictionarySnapshotClient
 	// Shop is the client for interacting with the Shop builders.
 	Shop *ShopClient
+	// TaskEvent is the client for interacting with the TaskEvent builders.
+	TaskEvent *TaskEventClient
+	// WorkbenchTask is the client for interacting with the WorkbenchTask builders.
+	WorkbenchTask *WorkbenchTaskClient
 }
 
 // NewClient creates a new client configured with the given options.
@@ -57,6 +63,8 @@ func (c *Client) init() {
 	c.CategorySnapshot = NewCategorySnapshotClient(c.config)
 	c.DictionarySnapshot = NewDictionarySnapshotClient(c.config)
 	c.Shop = NewShopClient(c.config)
+	c.TaskEvent = NewTaskEventClient(c.config)
+	c.WorkbenchTask = NewWorkbenchTaskClient(c.config)
 }
 
 type (
@@ -155,6 +163,8 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		CategorySnapshot:   NewCategorySnapshotClient(cfg),
 		DictionarySnapshot: NewDictionarySnapshotClient(cfg),
 		Shop:               NewShopClient(cfg),
+		TaskEvent:          NewTaskEventClient(cfg),
+		WorkbenchTask:      NewWorkbenchTaskClient(cfg),
 	}, nil
 }
 
@@ -180,6 +190,8 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		CategorySnapshot:   NewCategorySnapshotClient(cfg),
 		DictionarySnapshot: NewDictionarySnapshotClient(cfg),
 		Shop:               NewShopClient(cfg),
+		TaskEvent:          NewTaskEventClient(cfg),
+		WorkbenchTask:      NewWorkbenchTaskClient(cfg),
 	}, nil
 }
 
@@ -210,7 +222,7 @@ func (c *Client) Close() error {
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.AttributeContract, c.CategoryNode, c.CategoryPrompt, c.CategorySnapshot,
-		c.DictionarySnapshot, c.Shop,
+		c.DictionarySnapshot, c.Shop, c.TaskEvent, c.WorkbenchTask,
 	} {
 		n.Use(hooks...)
 	}
@@ -221,7 +233,7 @@ func (c *Client) Use(hooks ...Hook) {
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.AttributeContract, c.CategoryNode, c.CategoryPrompt, c.CategorySnapshot,
-		c.DictionarySnapshot, c.Shop,
+		c.DictionarySnapshot, c.Shop, c.TaskEvent, c.WorkbenchTask,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -242,6 +254,10 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.DictionarySnapshot.mutate(ctx, m)
 	case *ShopMutation:
 		return c.Shop.mutate(ctx, m)
+	case *TaskEventMutation:
+		return c.TaskEvent.mutate(ctx, m)
+	case *WorkbenchTaskMutation:
+		return c.WorkbenchTask.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
 	}
@@ -1045,14 +1061,280 @@ func (c *ShopClient) mutate(ctx context.Context, m *ShopMutation) (Value, error)
 	}
 }
 
+// TaskEventClient is a client for the TaskEvent schema.
+type TaskEventClient struct {
+	config
+}
+
+// NewTaskEventClient returns a client for the TaskEvent from the given config.
+func NewTaskEventClient(c config) *TaskEventClient {
+	return &TaskEventClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `taskevent.Hooks(f(g(h())))`.
+func (c *TaskEventClient) Use(hooks ...Hook) {
+	c.hooks.TaskEvent = append(c.hooks.TaskEvent, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `taskevent.Intercept(f(g(h())))`.
+func (c *TaskEventClient) Intercept(interceptors ...Interceptor) {
+	c.inters.TaskEvent = append(c.inters.TaskEvent, interceptors...)
+}
+
+// Create returns a builder for creating a TaskEvent entity.
+func (c *TaskEventClient) Create() *TaskEventCreate {
+	mutation := newTaskEventMutation(c.config, OpCreate)
+	return &TaskEventCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of TaskEvent entities.
+func (c *TaskEventClient) CreateBulk(builders ...*TaskEventCreate) *TaskEventCreateBulk {
+	return &TaskEventCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *TaskEventClient) MapCreateBulk(slice any, setFunc func(*TaskEventCreate, int)) *TaskEventCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &TaskEventCreateBulk{err: fmt.Errorf("calling to TaskEventClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*TaskEventCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &TaskEventCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for TaskEvent.
+func (c *TaskEventClient) Update() *TaskEventUpdate {
+	mutation := newTaskEventMutation(c.config, OpUpdate)
+	return &TaskEventUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *TaskEventClient) UpdateOne(te *TaskEvent) *TaskEventUpdateOne {
+	mutation := newTaskEventMutation(c.config, OpUpdateOne, withTaskEvent(te))
+	return &TaskEventUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *TaskEventClient) UpdateOneID(id int) *TaskEventUpdateOne {
+	mutation := newTaskEventMutation(c.config, OpUpdateOne, withTaskEventID(id))
+	return &TaskEventUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for TaskEvent.
+func (c *TaskEventClient) Delete() *TaskEventDelete {
+	mutation := newTaskEventMutation(c.config, OpDelete)
+	return &TaskEventDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *TaskEventClient) DeleteOne(te *TaskEvent) *TaskEventDeleteOne {
+	return c.DeleteOneID(te.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *TaskEventClient) DeleteOneID(id int) *TaskEventDeleteOne {
+	builder := c.Delete().Where(taskevent.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &TaskEventDeleteOne{builder}
+}
+
+// Query returns a query builder for TaskEvent.
+func (c *TaskEventClient) Query() *TaskEventQuery {
+	return &TaskEventQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeTaskEvent},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a TaskEvent entity by its id.
+func (c *TaskEventClient) Get(ctx context.Context, id int) (*TaskEvent, error) {
+	return c.Query().Where(taskevent.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *TaskEventClient) GetX(ctx context.Context, id int) *TaskEvent {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *TaskEventClient) Hooks() []Hook {
+	return c.hooks.TaskEvent
+}
+
+// Interceptors returns the client interceptors.
+func (c *TaskEventClient) Interceptors() []Interceptor {
+	return c.inters.TaskEvent
+}
+
+func (c *TaskEventClient) mutate(ctx context.Context, m *TaskEventMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&TaskEventCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&TaskEventUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&TaskEventUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&TaskEventDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown TaskEvent mutation op: %q", m.Op())
+	}
+}
+
+// WorkbenchTaskClient is a client for the WorkbenchTask schema.
+type WorkbenchTaskClient struct {
+	config
+}
+
+// NewWorkbenchTaskClient returns a client for the WorkbenchTask from the given config.
+func NewWorkbenchTaskClient(c config) *WorkbenchTaskClient {
+	return &WorkbenchTaskClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `workbenchtask.Hooks(f(g(h())))`.
+func (c *WorkbenchTaskClient) Use(hooks ...Hook) {
+	c.hooks.WorkbenchTask = append(c.hooks.WorkbenchTask, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `workbenchtask.Intercept(f(g(h())))`.
+func (c *WorkbenchTaskClient) Intercept(interceptors ...Interceptor) {
+	c.inters.WorkbenchTask = append(c.inters.WorkbenchTask, interceptors...)
+}
+
+// Create returns a builder for creating a WorkbenchTask entity.
+func (c *WorkbenchTaskClient) Create() *WorkbenchTaskCreate {
+	mutation := newWorkbenchTaskMutation(c.config, OpCreate)
+	return &WorkbenchTaskCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of WorkbenchTask entities.
+func (c *WorkbenchTaskClient) CreateBulk(builders ...*WorkbenchTaskCreate) *WorkbenchTaskCreateBulk {
+	return &WorkbenchTaskCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *WorkbenchTaskClient) MapCreateBulk(slice any, setFunc func(*WorkbenchTaskCreate, int)) *WorkbenchTaskCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &WorkbenchTaskCreateBulk{err: fmt.Errorf("calling to WorkbenchTaskClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*WorkbenchTaskCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &WorkbenchTaskCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for WorkbenchTask.
+func (c *WorkbenchTaskClient) Update() *WorkbenchTaskUpdate {
+	mutation := newWorkbenchTaskMutation(c.config, OpUpdate)
+	return &WorkbenchTaskUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *WorkbenchTaskClient) UpdateOne(wt *WorkbenchTask) *WorkbenchTaskUpdateOne {
+	mutation := newWorkbenchTaskMutation(c.config, OpUpdateOne, withWorkbenchTask(wt))
+	return &WorkbenchTaskUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *WorkbenchTaskClient) UpdateOneID(id int) *WorkbenchTaskUpdateOne {
+	mutation := newWorkbenchTaskMutation(c.config, OpUpdateOne, withWorkbenchTaskID(id))
+	return &WorkbenchTaskUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for WorkbenchTask.
+func (c *WorkbenchTaskClient) Delete() *WorkbenchTaskDelete {
+	mutation := newWorkbenchTaskMutation(c.config, OpDelete)
+	return &WorkbenchTaskDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *WorkbenchTaskClient) DeleteOne(wt *WorkbenchTask) *WorkbenchTaskDeleteOne {
+	return c.DeleteOneID(wt.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *WorkbenchTaskClient) DeleteOneID(id int) *WorkbenchTaskDeleteOne {
+	builder := c.Delete().Where(workbenchtask.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &WorkbenchTaskDeleteOne{builder}
+}
+
+// Query returns a query builder for WorkbenchTask.
+func (c *WorkbenchTaskClient) Query() *WorkbenchTaskQuery {
+	return &WorkbenchTaskQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeWorkbenchTask},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a WorkbenchTask entity by its id.
+func (c *WorkbenchTaskClient) Get(ctx context.Context, id int) (*WorkbenchTask, error) {
+	return c.Query().Where(workbenchtask.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *WorkbenchTaskClient) GetX(ctx context.Context, id int) *WorkbenchTask {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *WorkbenchTaskClient) Hooks() []Hook {
+	return c.hooks.WorkbenchTask
+}
+
+// Interceptors returns the client interceptors.
+func (c *WorkbenchTaskClient) Interceptors() []Interceptor {
+	return c.inters.WorkbenchTask
+}
+
+func (c *WorkbenchTaskClient) mutate(ctx context.Context, m *WorkbenchTaskMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&WorkbenchTaskCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&WorkbenchTaskUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&WorkbenchTaskUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&WorkbenchTaskDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown WorkbenchTask mutation op: %q", m.Op())
+	}
+}
+
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
 		AttributeContract, CategoryNode, CategoryPrompt, CategorySnapshot,
-		DictionarySnapshot, Shop []ent.Hook
+		DictionarySnapshot, Shop, TaskEvent, WorkbenchTask []ent.Hook
 	}
 	inters struct {
 		AttributeContract, CategoryNode, CategoryPrompt, CategorySnapshot,
-		DictionarySnapshot, Shop []ent.Interceptor
+		DictionarySnapshot, Shop, TaskEvent, WorkbenchTask []ent.Interceptor
 	}
 )
