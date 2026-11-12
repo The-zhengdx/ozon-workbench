@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -67,7 +68,10 @@ func (r *CLIRunner) Run(ctx context.Context, req RunRequest) (*RunResult, error)
 	if err != nil {
 		return nil, err
 	}
-	cmd := exec.CommandContext(ctx, bin, args...)
+	cmd, err := commandContext(ctx, bin, args)
+	if err != nil {
+		return nil, err
+	}
 	cmd.Dir = work
 	cmd.Stdin = strings.NewReader(req.Prompt)
 	var stdout, stderr bytes.Buffer
@@ -93,6 +97,15 @@ func (r *CLIRunner) Run(ctx context.Context, req RunRequest) (*RunResult, error)
 }
 
 func resolveBinary(binary string) (string, error) {
+	if runtime.GOOS == "windows" {
+		// LookPath applies PATHEXT, so "codex", "codex.cmd", and a path that
+		// omits .exe/.cmd all resolve. os.Stat would miss the npm shim codex.cmd.
+		path, err := exec.LookPath(binary)
+		if err != nil || path == "" {
+			return "", fmt.Errorf("找不到 Codex CLI（%s）", binary)
+		}
+		return path, nil
+	}
 	if strings.ContainsRune(binary, os.PathSeparator) || strings.Contains(binary, "/") {
 		info, err := os.Stat(binary)
 		if err != nil || info.IsDir() {
