@@ -23,3 +23,9 @@ type DictionarySnapshot func(*sql.Selector)
 
 // Shop is the predicate function for shop builders.
 type Shop func(*sql.Selector)
+
+// TaskEvent is the predicate function for taskevent builders.
+type TaskEvent func(*sql.Selector)
+
+// WorkbenchTask is the predicate function for workbenchtask builders.
+type WorkbenchTask func(*sql.Selector)

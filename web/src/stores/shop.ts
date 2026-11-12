@@ -12,6 +12,7 @@ export const useShopStore = defineStore("shop", {
     currentShopId: null as number | null,
     mock: false,
     proxy: "direct",
+    codexMock: true,
     loading: false,
     error: "",
   }),
@@ -37,6 +38,7 @@ export const useShopStore = defineStore("shop", {
         this.shops = shops;
         this.mock = meta.mock;
         this.proxy = meta.proxy || "direct";
+        this.codexMock = meta.codex_mock !== false;
         this.ensureCurrent();
       } catch (error) {
         this.error = error instanceof Error ? error.message : "店铺列表加载失败";

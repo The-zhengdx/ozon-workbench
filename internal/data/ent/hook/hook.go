@@ -80,6 +80,30 @@ func (f ShopFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error)
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ShopMutation", m)
 }
 
+// The TaskEventFunc type is an adapter to allow the use of ordinary
+// function as TaskEvent mutator.
+type TaskEventFunc func(context.Context, *ent.TaskEventMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f TaskEventFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.TaskEventMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.TaskEventMutation", m)
+}
+
+// The WorkbenchTaskFunc type is an adapter to allow the use of ordinary
+// function as WorkbenchTask mutator.
+type WorkbenchTaskFunc func(context.Context, *ent.WorkbenchTaskMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f WorkbenchTaskFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.WorkbenchTaskMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.WorkbenchTaskMutation", m)
+}
+
 // Condition is a hook condition function.
 type Condition func(context.Context, ent.Mutation) bool
 

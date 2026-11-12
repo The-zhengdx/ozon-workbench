@@ -1,0 +1,122 @@
+syntax = "proto3";
+
+package workbench.v1;
+
+option go_package = "ozon-workbench/api/workbench/v1;v1";
+
+// TaskService 素材加工工作台。
+// 正式 HTTP 由 internal/service 按下列路径实现。任务绑定请求头 X-Shop-Id。
+// 上传使用 multipart，不走这条 JSON 声明；字段见文件末尾说明。
+service TaskService {
+  // GET /api/v1/tasks?status=&page=&page_size=
+  rpc ListTasks(ListTasksRequest) returns (ListTasksReply);
+  // GET /api/v1/tasks/{id}
+  rpc GetTask(GetTaskRequest) returns (TaskDetail);
+  // POST /api/v1/tasks/{id}/policy
+  rpc UpdateTaskPolicy(UpdateTaskPolicyRequest) returns (Task);
+  // POST /api/v1/tasks/{id}/approve
+  rpc ApproveTask(ApproveTaskRequest) returns (Task);
+  // POST /api/v1/tasks/{id}/input
+  rpc SubmitTaskInput(SubmitTaskInputRequest) returns (Task);
+  // POST /api/v1/tasks/{id}/messages
+  rpc FollowUp(FollowUpRequest) returns (Task);
+  // GET /api/v1/tasks/{id}/events?after_seq=&before_seq=&limit=
+  rpc ListTaskEvents(ListTaskEventsRequest) returns (ListTaskEventsReply);
+}
+
+message ListTasksRequest {
+  string status = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message ListTasksReply {
+  repeated Task tasks = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 page_size = 4;
+}
+
+message GetTaskRequest {
+  int64 id = 1;
+}
+
+message Task {
+  int64 id = 1;
+  int64 shop_id = 2;
+  int64 category_id = 3;
+  int64 description_category_id = 4;
+  int64 type_id = 5;
+  string master_sku = 6;
+  string supplier_url = 7;
+  string zip_filename = 8;
+  string zip_local_path = 9;
+  bool auto_text_approve = 10;
+  bool auto_visual_approve = 11;
+  string status = 12;
+  string codex_session_id = 13;
+  int64 revision = 14;
+  string error_message = 15;
+}
+
+message TaskDetail {
+  Task task = 1;
+  string prompt_template = 2;
+  string rendered_prompt = 3;
+}
+
+message UpdateTaskPolicyRequest {
+  int64 id = 1;
+  int64 revision = 2;
+  bool auto_text_approve = 3;
+  bool auto_visual_approve = 4;
+}
+
+message ApproveTaskRequest {
+  int64 id = 1;
+  int64 revision = 2;
+  // text 或 visual
+  string stage = 3;
+}
+
+message SubmitTaskInputRequest {
+  int64 id = 1;
+  int64 revision = 2;
+}
+
+message FollowUpRequest {
+  int64 id = 1;
+  int64 revision = 2;
+  string content = 3;
+}
+
+message ListTaskEventsRequest {
+  int64 id = 1;
+  int32 after_seq = 2;
+  int32 before_seq = 3;
+  int32 limit = 4;
+}
+
+message TaskEvent {
+  int64 id = 1;
+  int64 task_id = 2;
+  string session_id = 3;
+  int32 seq = 4;
+  string role = 5;
+  string stage = 6;
+  string content = 7;
+  string tool_call_id = 8;
+  string resource_ref = 9;
+}
+
+message ListTaskEventsReply {
+  repeated TaskEvent events = 1;
+  bool has_more = 2;
+}
+
+// POST /api/v1/tasks
+// Content-Type: multipart/form-data
+// 字段：master_sku, supplier_url, description_category_id, type_id, language,
+// auto_text_approve, auto_visual_approve, file（.zip，流式落盘）。
+// 解压成功后删除 zip，zip_local_path 保存解压目录。
+// GET /media/tasks/{id}/{path} 读取该目录里的文件。

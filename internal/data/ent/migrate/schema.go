@@ -166,6 +166,92 @@ var (
 			},
 		},
 	}
+	// TaskEventsColumns holds the columns for the "task_events" table.
+	TaskEventsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "task_id", Type: field.TypeInt},
+		{Name: "shop_id", Type: field.TypeInt},
+		{Name: "session_id", Type: field.TypeString, Size: 128, Default: ""},
+		{Name: "seq", Type: field.TypeInt},
+		{Name: "role", Type: field.TypeString, Size: 32},
+		{Name: "stage", Type: field.TypeString, Size: 64, Default: ""},
+		{Name: "content", Type: field.TypeString, Default: "", SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "tool_call_id", Type: field.TypeString, Size: 128, Default: ""},
+		{Name: "resource_ref", Type: field.TypeString, Size: 500, Default: ""},
+		{Name: "created_at", Type: field.TypeTime},
+	}
+	// TaskEventsTable holds the schema information for the "task_events" table.
+	TaskEventsTable = &schema.Table{
+		Name:       "task_events",
+		Columns:    TaskEventsColumns,
+		PrimaryKey: []*schema.Column{TaskEventsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "taskevent_task_id_seq",
+				Unique:  true,
+				Columns: []*schema.Column{TaskEventsColumns[1], TaskEventsColumns[4]},
+			},
+			{
+				Name:    "taskevent_shop_id_task_id",
+				Unique:  false,
+				Columns: []*schema.Column{TaskEventsColumns[2], TaskEventsColumns[1]},
+			},
+		},
+	}
+	// WorkbenchTasksColumns holds the columns for the "workbench_tasks" table.
+	WorkbenchTasksColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "shop_id", Type: field.TypeInt},
+		{Name: "category_node_id", Type: field.TypeInt, Default: 0},
+		{Name: "description_category_id", Type: field.TypeInt64},
+		{Name: "type_id", Type: field.TypeInt64},
+		{Name: "language", Type: field.TypeString, Size: 16, Default: "ZH_HANS"},
+		{Name: "type_name", Type: field.TypeString, Size: 255, Default: ""},
+		{Name: "type_path", Type: field.TypeJSON, Nullable: true},
+		{Name: "master_sku", Type: field.TypeString, Size: 64},
+		{Name: "supplier_url", Type: field.TypeString, Size: 500, Default: ""},
+		{Name: "zip_filename", Type: field.TypeString, Size: 255, Default: ""},
+		{Name: "zip_local_path", Type: field.TypeString, Size: 500, Default: ""},
+		{Name: "auto_text_approve", Type: field.TypeBool, Default: false},
+		{Name: "auto_visual_approve", Type: field.TypeBool, Default: false},
+		{Name: "text_approved", Type: field.TypeBool, Default: false},
+		{Name: "text_approved_auto", Type: field.TypeBool, Default: false},
+		{Name: "visual_approved", Type: field.TypeBool, Default: false},
+		{Name: "visual_approved_auto", Type: field.TypeBool, Default: false},
+		{Name: "status", Type: field.TypeString, Size: 32, Default: "RUNNING"},
+		{Name: "phase", Type: field.TypeString, Size: 32, Default: "extract"},
+		{Name: "codex_session_id", Type: field.TypeString, Size: 128, Default: ""},
+		{Name: "revision", Type: field.TypeInt64, Default: 1},
+		{Name: "missing_fields", Type: field.TypeString, Default: "[]", SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "input_values", Type: field.TypeString, Default: "{}", SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "sub_skus", Type: field.TypeString, Default: "[]", SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "text_draft", Type: field.TypeString, Default: "{}", SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "visual_plan", Type: field.TypeString, Default: "{}", SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "attributes_json", Type: field.TypeString, Default: "[]", SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "prompt_template", Type: field.TypeString, Default: "", SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "rendered_prompt", Type: field.TypeString, Default: "", SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "error_message", Type: field.TypeString, Size: 4000, Default: ""},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// WorkbenchTasksTable holds the schema information for the "workbench_tasks" table.
+	WorkbenchTasksTable = &schema.Table{
+		Name:       "workbench_tasks",
+		Columns:    WorkbenchTasksColumns,
+		PrimaryKey: []*schema.Column{WorkbenchTasksColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "workbenchtask_shop_id_status",
+				Unique:  false,
+				Columns: []*schema.Column{WorkbenchTasksColumns[1], WorkbenchTasksColumns[18]},
+			},
+			{
+				Name:    "workbenchtask_status",
+				Unique:  false,
+				Columns: []*schema.Column{WorkbenchTasksColumns[18]},
+			},
+		},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		AttributeContractsTable,
@@ -174,6 +260,8 @@ var (
 		CategorySnapshotsTable,
 		DictionarySnapshotsTable,
 		ShopsTable,
+		TaskEventsTable,
+		WorkbenchTasksTable,
 	}
 )
 
@@ -195,5 +283,11 @@ func init() {
 	}
 	ShopsTable.Annotation = &entsql.Annotation{
 		Table: "shops",
+	}
+	TaskEventsTable.Annotation = &entsql.Annotation{
+		Table: "task_events",
+	}
+	WorkbenchTasksTable.Annotation = &entsql.Annotation{
+		Table: "workbench_tasks",
 	}
 }

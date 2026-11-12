@@ -12,6 +12,8 @@ import (
 	"ozon-workbench/internal/data/ent/categorysnapshot"
 	"ozon-workbench/internal/data/ent/dictionarysnapshot"
 	"ozon-workbench/internal/data/ent/shop"
+	"ozon-workbench/internal/data/ent/taskevent"
+	"ozon-workbench/internal/data/ent/workbenchtask"
 	"reflect"
 	"sync"
 
@@ -84,6 +86,8 @@ func checkColumn(table, column string) error {
 			categorysnapshot.Table:   categorysnapshot.ValidColumn,
 			dictionarysnapshot.Table: dictionarysnapshot.ValidColumn,
 			shop.Table:               shop.ValidColumn,
+			taskevent.Table:          taskevent.ValidColumn,
+			workbenchtask.Table:      workbenchtask.ValidColumn,
 		})
 	})
 	return columnCheck(table, column)

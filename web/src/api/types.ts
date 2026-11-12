@@ -117,6 +117,92 @@ export interface DictPage {
   query?: string;
 }
 
+export type TaskStatus =
+  | "RUNNING"
+  | "NEED_INPUT"
+  | "PENDING_TEXT_REVIEW"
+  | "PENDING_VISUAL_REVIEW"
+  | "COMPLETED"
+  | "FAILED";
+
+export interface MissingField {
+  key: string;
+  label: string;
+  required: boolean;
+  hint?: string;
+}
+
+export interface SubSKU {
+  offer_id: string;
+  specs?: string;
+}
+
+export interface WorkbenchTask {
+  id: number;
+  shop_id: number;
+  category_id: number;
+  description_category_id: number;
+  type_id: number;
+  language: string;
+  type_name: string;
+  type_path: string[];
+  master_sku: string;
+  supplier_url: string;
+  zip_filename: string;
+  zip_local_path: string;
+  auto_text_approve: boolean;
+  auto_visual_approve: boolean;
+  text_approved: boolean;
+  text_approved_auto: boolean;
+  visual_approved: boolean;
+  visual_approved_auto: boolean;
+  status: TaskStatus;
+  codex_session_id: string;
+  revision: number;
+  missing_fields: MissingField[];
+  sub_skus: SubSKU[];
+  text_draft: {
+    title_ru?: string;
+    selling_points?: string[];
+    attributes?: Record<string, unknown>;
+    sub_skus?: SubSKU[];
+  };
+  visual_plan: {
+    items?: { offer_id?: string; primary_image?: string; notes?: string }[];
+  };
+  error_message: string;
+  created_at: string;
+  updated_at: string;
+  prompt_template?: string;
+  rendered_prompt?: string;
+  attributes?: unknown;
+}
+
+export interface TaskPage {
+  tasks: WorkbenchTask[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface TaskEvent {
+  id: number;
+  task_id: number;
+  session_id: string;
+  seq: number;
+  role: string;
+  stage: string;
+  content: string;
+  tool_call_id: string;
+  resource_ref: string;
+  created_at: string;
+}
+
+export interface EventPage {
+  events: TaskEvent[];
+  has_more: boolean;
+}
+
 export interface ApiFailure {
   message: string;
   fields?: Record<string, string>;

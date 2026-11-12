@@ -86,6 +86,7 @@ function onSwitch(value: number) {
           <div class="demo">
             <span v-if="shop.mock" class="status warm">模拟模式 · 仓库是内置示例</span>
             <span v-else class="status ready">真实 Ozon · {{ shop.proxyLabel }}</span>
+            <span class="status" :class="shop.codexMock ? 'warm' : 'ready'">{{ shop.codexMock ? "Codex 模拟" : "本地 Codex" }}</span>
           </div>
         </header>
         <section class="content">

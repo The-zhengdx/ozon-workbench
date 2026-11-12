@@ -22,7 +22,7 @@ func spaFilter(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		if strings.HasPrefix(r.URL.Path, "/api/") || r.URL.Path == "/healthz" {
+		if strings.HasPrefix(r.URL.Path, "/api/") || strings.HasPrefix(r.URL.Path, "/media/") || r.URL.Path == "/healthz" {
 			next.ServeHTTP(w, r)
 			return
 		}
