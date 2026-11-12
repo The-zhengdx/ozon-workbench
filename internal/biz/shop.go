@@ -307,6 +307,25 @@ func trimRunes(msg string, max int) string {
 	return string(r[:max])
 }
 
+// RememberCurrency records the contract currency the first time a publish preflight sees one.
+// A shop that already has a currency is left unchanged.
+func (uc *ShopUsecase) RememberCurrency(ctx context.Context, id int, code string) error {
+	code = strings.ToUpper(strings.TrimSpace(code))
+	if len(code) != 3 {
+		return nil
+	}
+	shop, err := uc.repo.Get(ctx, id)
+	if err != nil {
+		return err
+	}
+	if shop.CurrencyCode != nil && strings.TrimSpace(*shop.CurrencyCode) != "" {
+		return nil
+	}
+	shop.CurrencyCode = &code
+	_, err = uc.repo.Update(ctx, shop)
+	return err
+}
+
 // Credentials decrypts a shop key for other usecases. The plaintext must not be logged.
 func (uc *ShopUsecase) Credentials(ctx context.Context, id int) (OzonCred, error) {
 	if id <= 0 {

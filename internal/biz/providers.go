@@ -1,6 +1,9 @@
 package biz
 
-import "ozon-workbench/internal/conf"
+import (
+	"ozon-workbench/internal/conf"
+	"ozon-workbench/internal/storage"
+)
 
 // NewTaskCatalog adapts the category repository to the workbench port.
 func NewTaskCatalog(repo CategoryRepo) TaskCatalog { return repo }
@@ -19,6 +22,11 @@ func NewTaskRuntime(cfg *conf.Runtime) TaskRuntime {
 // NewScheduler builds the in-process Codex worker pool.
 func NewScheduler(cfg *conf.Runtime) Scheduler {
 	return NewPool(cfg.CodexWorkers)
+}
+
+// NewMediaStore opens the configured public-media provider. Empty means none.
+func NewMediaStore(cfg *conf.Runtime) (storage.Store, error) {
+	return storage.Open(cfg)
 }
 
 // NewCodexRunner returns the mock runner unless codex.mock is turned off.

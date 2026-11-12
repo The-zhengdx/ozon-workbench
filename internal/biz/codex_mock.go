@@ -87,6 +87,11 @@ func (m *MockRunner) Run(ctx context.Context, req RunRequest) (*RunResult, error
 			})},
 			{Role: RoleAssistant, Stage: "视觉方案", Content: body},
 		}}, nil
+	case StageListing:
+		body := "商品参数\n\n" + SignalFenceItem(mockListingItem(req))
+		return &RunResult{SessionID: session, Messages: []RunnerMessage{
+			{Role: RoleAssistant, Stage: "商品参数", Content: body},
+		}}, nil
 	case StageFollowUp:
 		reply := fmt.Sprintf("当前主 SKU 为 %s。已在同一会话记录这次追问：\n%s", req.MasterSKU, req.Prompt)
 		return &RunResult{SessionID: session, Messages: []RunnerMessage{
@@ -143,6 +148,91 @@ func listImages(dir string) []string {
 		return nil
 	})
 	return out
+}
+
+func mockListingItem(req RunRequest) map[string]any {
+	facts := req.Listing
+	if facts == nil {
+		facts = &ListingFacts{OfferID: req.MasterSKU, Title: req.MasterSKU, Attributes: req.Attributes, Answers: req.Answers}
+	}
+	price := strings.TrimSpace(facts.Price)
+	if price == "" {
+		price = "79.00"
+	}
+	currency := strings.TrimSpace(facts.Currency)
+	image := strings.TrimSpace(facts.PrimaryImage)
+	images := append([]string(nil), facts.Images...)
+	attrs := make([]map[string]any, 0)
+	for _, attr := range facts.Attributes {
+		if !truthy(attr["is_required"]) {
+			continue
+		}
+		id := int64FromAny(attr["id"])
+		value := ""
+		if facts.Answers != nil {
+			value = facts.Answers[fmt.Sprintf("attr_%d", id)]
+		}
+		if value == "" {
+			value = facts.Specs
+		}
+		if value == "" {
+			value = "未填写"
+		}
+		entry := map[string]any{"complex_id": int64FromAny(attr["attribute_complex_id"]), "id": id}
+		if int64FromAny(attr["dictionary_id"]) > 0 {
+			dictValue := int64(5055881)
+			if id != 85 {
+				dictValue = 1
+			}
+			entry["values"] = []map[string]any{{"dictionary_value_id": dictValue, "value": value}}
+		} else {
+			entry["values"] = []map[string]any{{"value": value}}
+		}
+		attrs = append(attrs, entry)
+	}
+	return map[string]any{
+		"offer_id":                facts.OfferID,
+		"description_category_id": facts.DescriptionCategoryID,
+		"type_id":                 facts.TypeID,
+		"name":                    firstNonEmpty(facts.Title, "Товар "+facts.OfferID),
+		"price":                   price,
+		"currency_code":           currency,
+		"depth":                   120,
+		"width":                   80,
+		"height":                  40,
+		"dimension_unit":          "mm",
+		"weight":                  180,
+		"weight_unit":             "g",
+		"vat":                     "0",
+		"primary_image":           image,
+		"images":                  images,
+		"attributes":              attrs,
+	}
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return strings.TrimSpace(value)
+		}
+	}
+	return ""
+}
+
+func int64FromAny(v any) int64 {
+	switch t := v.(type) {
+	case int64:
+		return t
+	case int:
+		return int64(t)
+	case float64:
+		return int64(t)
+	case json.Number:
+		n, _ := t.Int64()
+		return n
+	default:
+		return 0
+	}
 }
 
 func mustJSON(v any) string {

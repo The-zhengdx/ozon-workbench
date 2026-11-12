@@ -135,6 +135,262 @@ var (
 			},
 		},
 	}
+	// ListingMediaColumns holds the columns for the "listing_media" table.
+	ListingMediaColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "listing_sku_id", Type: field.TypeInt},
+		{Name: "shop_id", Type: field.TypeInt},
+		{Name: "role", Type: field.TypeString, Size: 32, Default: "image"},
+		{Name: "local_path", Type: field.TypeString, Size: 500, Default: ""},
+		{Name: "storage_key", Type: field.TypeString, Size: 500, Default: ""},
+		{Name: "public_url", Type: field.TypeString, Size: 2000, Default: ""},
+		{Name: "public_key", Type: field.TypeString, Size: 2000, Default: ""},
+		{Name: "status", Type: field.TypeString, Size: 32, Default: "local"},
+		{Name: "error_message", Type: field.TypeString, Size: 2000, Default: ""},
+		{Name: "attempts", Type: field.TypeInt, Default: 0},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// ListingMediaTable holds the schema information for the "listing_media" table.
+	ListingMediaTable = &schema.Table{
+		Name:       "listing_media",
+		Columns:    ListingMediaColumns,
+		PrimaryKey: []*schema.Column{ListingMediaColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "listingmedia_listing_sku_id",
+				Unique:  false,
+				Columns: []*schema.Column{ListingMediaColumns[1]},
+			},
+		},
+	}
+	// ListingProductsColumns holds the columns for the "listing_products" table.
+	ListingProductsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "shop_id", Type: field.TypeInt},
+		{Name: "task_id", Type: field.TypeInt, Default: 0},
+		{Name: "master_sku", Type: field.TypeString, Size: 64},
+		{Name: "supplier_url", Type: field.TypeString, Size: 500, Default: ""},
+		{Name: "description_category_id", Type: field.TypeInt64, Default: 0},
+		{Name: "type_id", Type: field.TypeInt64, Default: 0},
+		{Name: "type_name", Type: field.TypeString, Size: 255, Default: ""},
+		{Name: "type_path", Type: field.TypeJSON, Nullable: true},
+		{Name: "language", Type: field.TypeString, Size: 16, Default: "ZH_HANS"},
+		{Name: "attributes_json", Type: field.TypeString, Default: "[]", SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "codex_session_id", Type: field.TypeString, Size: 128, Default: ""},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// ListingProductsTable holds the schema information for the "listing_products" table.
+	ListingProductsTable = &schema.Table{
+		Name:       "listing_products",
+		Columns:    ListingProductsColumns,
+		PrimaryKey: []*schema.Column{ListingProductsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "listingproduct_shop_id_task_id_master_sku",
+				Unique:  true,
+				Columns: []*schema.Column{ListingProductsColumns[1], ListingProductsColumns[2], ListingProductsColumns[3]},
+			},
+			{
+				Name:    "listingproduct_shop_id_master_sku",
+				Unique:  false,
+				Columns: []*schema.Column{ListingProductsColumns[1], ListingProductsColumns[3]},
+			},
+		},
+	}
+	// ListingSkuRevisionsColumns holds the columns for the "listing_sku_revisions" table.
+	ListingSkuRevisionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "listing_sku_id", Type: field.TypeInt},
+		{Name: "shop_id", Type: field.TypeInt},
+		{Name: "version", Type: field.TypeInt},
+		{Name: "source", Type: field.TypeString, Size: 32, Default: "draft"},
+		{Name: "codex_item_json", Type: field.TypeString, Default: "{}", SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "item_json", Type: field.TypeString, Default: "{}", SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "contract_version", Type: field.TypeString, Size: 64, Default: ""},
+		{Name: "validation_json", Type: field.TypeString, Default: "[]", SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "valid", Type: field.TypeBool, Default: false},
+		{Name: "created_at", Type: field.TypeTime},
+	}
+	// ListingSkuRevisionsTable holds the schema information for the "listing_sku_revisions" table.
+	ListingSkuRevisionsTable = &schema.Table{
+		Name:       "listing_sku_revisions",
+		Columns:    ListingSkuRevisionsColumns,
+		PrimaryKey: []*schema.Column{ListingSkuRevisionsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "listingrevision_listing_sku_id_version",
+				Unique:  true,
+				Columns: []*schema.Column{ListingSkuRevisionsColumns[1], ListingSkuRevisionsColumns[3]},
+			},
+		},
+	}
+	// ListingSkusColumns holds the columns for the "listing_skus" table.
+	ListingSkusColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "shop_id", Type: field.TypeInt},
+		{Name: "product_id", Type: field.TypeInt},
+		{Name: "task_id", Type: field.TypeInt, Default: 0},
+		{Name: "offer_id", Type: field.TypeString, Size: 128},
+		{Name: "master_sku", Type: field.TypeString, Size: 64, Default: ""},
+		{Name: "supplier_variant_ref", Type: field.TypeString, Size: 128, Default: ""},
+		{Name: "variant_specs", Type: field.TypeString, Size: 500, Default: ""},
+		{Name: "category_label", Type: field.TypeString, Size: 500, Default: ""},
+		{Name: "current_version", Type: field.TypeInt, Default: 1},
+		{Name: "publish_status", Type: field.TypeString, Size: 32, Default: "待完善"},
+		{Name: "platform_status", Type: field.TypeString, Size: 32, Default: "待回读"},
+		{Name: "platform_reason", Type: field.TypeString, Size: 2000, Default: ""},
+		{Name: "last_imported_version", Type: field.TypeInt, Default: 0},
+		{Name: "ozon_product_id", Type: field.TypeInt64, Default: 0},
+		{Name: "ozon_sku", Type: field.TypeInt64, Default: 0},
+		{Name: "last_checked_at", Type: field.TypeTime, Nullable: true},
+		{Name: "currency_code", Type: field.TypeString, Size: 3, Default: ""},
+		{Name: "price", Type: field.TypeString, Size: 32, Default: ""},
+		{Name: "title_ru", Type: field.TypeString, Size: 1000, Default: ""},
+		{Name: "primary_image", Type: field.TypeString, Size: 2000, Default: ""},
+		{Name: "preview_path", Type: field.TypeString, Size: 500, Default: ""},
+		{Name: "last_error", Type: field.TypeString, Size: 4000, Default: ""},
+		{Name: "codex_attempted", Type: field.TypeBool, Default: false},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// ListingSkusTable holds the schema information for the "listing_skus" table.
+	ListingSkusTable = &schema.Table{
+		Name:       "listing_skus",
+		Columns:    ListingSkusColumns,
+		PrimaryKey: []*schema.Column{ListingSkusColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "listingsku_shop_id_offer_id",
+				Unique:  true,
+				Columns: []*schema.Column{ListingSkusColumns[1], ListingSkusColumns[4]},
+			},
+			{
+				Name:    "listingsku_shop_id_publish_status_id",
+				Unique:  false,
+				Columns: []*schema.Column{ListingSkusColumns[1], ListingSkusColumns[10], ListingSkusColumns[0]},
+			},
+			{
+				Name:    "listingsku_product_id",
+				Unique:  false,
+				Columns: []*schema.Column{ListingSkusColumns[2]},
+			},
+		},
+	}
+	// PublishBatchesColumns holds the columns for the "publish_batches" table.
+	PublishBatchesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "shop_id", Type: field.TypeInt},
+		{Name: "idempotency_key", Type: field.TypeString, Size: 80},
+		{Name: "selection_hash", Type: field.TypeString, Size: 80, Default: ""},
+		{Name: "status", Type: field.TypeString, Size: 32, Default: "pending"},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// PublishBatchesTable holds the schema information for the "publish_batches" table.
+	PublishBatchesTable = &schema.Table{
+		Name:       "publish_batches",
+		Columns:    PublishBatchesColumns,
+		PrimaryKey: []*schema.Column{PublishBatchesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "publishbatch_shop_id_idempotency_key",
+				Unique:  true,
+				Columns: []*schema.Column{PublishBatchesColumns[1], PublishBatchesColumns[2]},
+			},
+		},
+	}
+	// PublishItemsColumns holds the columns for the "publish_items" table.
+	PublishItemsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "request_id", Type: field.TypeInt},
+		{Name: "batch_id", Type: field.TypeInt},
+		{Name: "listing_sku_id", Type: field.TypeInt},
+		{Name: "shop_id", Type: field.TypeInt},
+		{Name: "version", Type: field.TypeInt},
+		{Name: "offer_id", Type: field.TypeString, Size: 128},
+		{Name: "result_status", Type: field.TypeString, Size: 32, Default: "pending"},
+		{Name: "ozon_product_id", Type: field.TypeInt64, Default: 0},
+		{Name: "ozon_sku", Type: field.TypeInt64, Default: 0},
+		{Name: "error_code", Type: field.TypeString, Size: 128, Default: ""},
+		{Name: "error_detail", Type: field.TypeString, Size: 4000, Default: ""},
+	}
+	// PublishItemsTable holds the schema information for the "publish_items" table.
+	PublishItemsTable = &schema.Table{
+		Name:       "publish_items",
+		Columns:    PublishItemsColumns,
+		PrimaryKey: []*schema.Column{PublishItemsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "publishitem_batch_id_listing_sku_id",
+				Unique:  true,
+				Columns: []*schema.Column{PublishItemsColumns[2], PublishItemsColumns[3]},
+			},
+			{
+				Name:    "publishitem_offer_id",
+				Unique:  false,
+				Columns: []*schema.Column{PublishItemsColumns[6]},
+			},
+		},
+	}
+	// PublishRequestsColumns holds the columns for the "publish_requests" table.
+	PublishRequestsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "batch_id", Type: field.TypeInt},
+		{Name: "shop_id", Type: field.TypeInt},
+		{Name: "chunk_index", Type: field.TypeInt, Default: 0},
+		{Name: "request_body_json", Type: field.TypeString, Default: "{}", SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "task_id", Type: field.TypeString, Size: 64, Default: ""},
+		{Name: "status", Type: field.TypeString, Size: 32, Default: "pending"},
+		{Name: "error_message", Type: field.TypeString, Size: 2000, Default: ""},
+		{Name: "sent_at", Type: field.TypeTime, Nullable: true},
+		{Name: "finished_at", Type: field.TypeTime, Nullable: true},
+	}
+	// PublishRequestsTable holds the schema information for the "publish_requests" table.
+	PublishRequestsTable = &schema.Table{
+		Name:       "publish_requests",
+		Columns:    PublishRequestsColumns,
+		PrimaryKey: []*schema.Column{PublishRequestsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "publishrequest_batch_id_chunk_index",
+				Unique:  true,
+				Columns: []*schema.Column{PublishRequestsColumns[1], PublishRequestsColumns[3]},
+			},
+			{
+				Name:    "publishrequest_status",
+				Unique:  false,
+				Columns: []*schema.Column{PublishRequestsColumns[6]},
+			},
+		},
+	}
+	// SkuWarehouseStocksColumns holds the columns for the "sku_warehouse_stocks" table.
+	SkuWarehouseStocksColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "listing_sku_id", Type: field.TypeInt},
+		{Name: "shop_id", Type: field.TypeInt},
+		{Name: "warehouse_id", Type: field.TypeInt64},
+		{Name: "target_qty", Type: field.TypeInt, Default: 0},
+		{Name: "platform_qty", Type: field.TypeInt, Default: -1},
+		{Name: "sync_status", Type: field.TypeString, Size: 32, Default: ""},
+		{Name: "sync_message", Type: field.TypeString, Size: 2000, Default: ""},
+		{Name: "synced_at", Type: field.TypeTime, Nullable: true},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// SkuWarehouseStocksTable holds the schema information for the "sku_warehouse_stocks" table.
+	SkuWarehouseStocksTable = &schema.Table{
+		Name:       "sku_warehouse_stocks",
+		Columns:    SkuWarehouseStocksColumns,
+		PrimaryKey: []*schema.Column{SkuWarehouseStocksColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "skuwarehousestock_listing_sku_id_warehouse_id",
+				Unique:  true,
+				Columns: []*schema.Column{SkuWarehouseStocksColumns[1], SkuWarehouseStocksColumns[3]},
+			},
+		},
+	}
 	// ShopsColumns holds the columns for the "shops" table.
 	ShopsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -259,6 +515,14 @@ var (
 		CategoryPromptsTable,
 		CategorySnapshotsTable,
 		DictionarySnapshotsTable,
+		ListingMediaTable,
+		ListingProductsTable,
+		ListingSkuRevisionsTable,
+		ListingSkusTable,
+		PublishBatchesTable,
+		PublishItemsTable,
+		PublishRequestsTable,
+		SkuWarehouseStocksTable,
 		ShopsTable,
 		TaskEventsTable,
 		WorkbenchTasksTable,
@@ -280,6 +544,30 @@ func init() {
 	}
 	DictionarySnapshotsTable.Annotation = &entsql.Annotation{
 		Table: "dictionary_snapshots",
+	}
+	ListingMediaTable.Annotation = &entsql.Annotation{
+		Table: "listing_media",
+	}
+	ListingProductsTable.Annotation = &entsql.Annotation{
+		Table: "listing_products",
+	}
+	ListingSkuRevisionsTable.Annotation = &entsql.Annotation{
+		Table: "listing_sku_revisions",
+	}
+	ListingSkusTable.Annotation = &entsql.Annotation{
+		Table: "listing_skus",
+	}
+	PublishBatchesTable.Annotation = &entsql.Annotation{
+		Table: "publish_batches",
+	}
+	PublishItemsTable.Annotation = &entsql.Annotation{
+		Table: "publish_items",
+	}
+	PublishRequestsTable.Annotation = &entsql.Annotation{
+		Table: "publish_requests",
+	}
+	SkuWarehouseStocksTable.Annotation = &entsql.Annotation{
+		Table: "sku_warehouse_stocks",
 	}
 	ShopsTable.Annotation = &entsql.Annotation{
 		Table: "shops",

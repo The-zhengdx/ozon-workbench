@@ -45,25 +45,40 @@ func initApp(cfg *conf.Runtime, logger log.Logger) (*kratos.App, func(), error) 
 	shopRepo := data.NewShopRepo(dataData)
 	categoryRepo := data.NewCategoryRepo(dataData)
 	taskRepo := data.NewTaskRepo(dataData)
+	listingRepo := data.NewListingRepo(dataData)
 	shopUC := biz.NewShopUsecase(shopRepo, cipher, ozon, logger)
 	categoryUC := biz.NewCategoryUsecase(categoryRepo, shopUC, ozon, logger)
 	if err := categoryUC.EnsureExample(context.Background()); err != nil {
 		cleanup()
 		return nil, nil, err
 	}
-	taskUC, err := biz.NewTaskUsecase(taskRepo, shopRepo, biz.NewTaskCatalog(categoryRepo), biz.NewCodexRunner(cfg), biz.NewScheduler(cfg), biz.NewTaskRuntime(cfg), logger)
+	mediaStore, err := biz.NewMediaStore(cfg)
 	if err != nil {
 		cleanup()
 		return nil, nil, err
 	}
+	runner := biz.NewCodexRunner(cfg)
+	sched := biz.NewScheduler(cfg)
+	taskUC, err := biz.NewTaskUsecase(taskRepo, shopRepo, biz.NewTaskCatalog(categoryRepo), runner, sched, biz.NewTaskRuntime(cfg), logger)
+	if err != nil {
+		cleanup()
+		return nil, nil, err
+	}
+	listingUC := biz.NewListingUsecase(listingRepo, shopUC, runner, mediaStore, data.NewListingGateway(ozon), sched, logger)
+	taskUC.SetListingSink(listingUC)
 	if err := taskUC.Recover(context.Background()); err != nil {
+		cleanup()
+		return nil, nil, err
+	}
+	if err := listingUC.Recover(context.Background()); err != nil {
 		cleanup()
 		return nil, nil, err
 	}
 	shopSvc := service.NewShopService(shopUC, logger)
 	categorySvc := service.NewCategoryService(categoryUC, logger)
 	taskSvc := service.NewTaskService(taskUC, cfg, logger)
-	httpSrv := server.NewHTTPServer(cfg, shopSvc, categorySvc, taskSvc, logger)
+	listingSvc := service.NewListingService(listingUC, logger)
+	httpSrv := server.NewHTTPServer(cfg, shopSvc, categorySvc, taskSvc, listingSvc, logger)
 	app := newApp(logger, httpSrv)
 	return app, cleanup, nil
 }

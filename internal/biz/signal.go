@@ -150,6 +150,27 @@ func MergeSubSKUs(master string, structured []SubSKU, prose string) []SubSKU {
 	return out
 }
 
+// ParseItemObject reads the ozon-item block Codex returns for one import object.
+func ParseItemObject(text string) (json.RawMessage, error) {
+	block := fenceBlock(text, "ozon-item")
+	if block == "" {
+		return nil, fmt.Errorf("Codex 输出缺少 ozon-item")
+	}
+	if !json.Valid([]byte(block)) {
+		return nil, fmt.Errorf("ozon-item 不是合法 JSON")
+	}
+	return json.RawMessage(block), nil
+}
+
+// SignalFenceItem wraps one import object.
+func SignalFenceItem(v any) string {
+	raw, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		raw = []byte(`{}`)
+	}
+	return "```ozon-item\n" + string(raw) + "\n```"
+}
+
 // SignalFence wraps a payload the same way the real prompt asks Codex to.
 func SignalFence(v any) string {
 	raw, err := json.MarshalIndent(v, "", "  ")

@@ -21,6 +21,30 @@ type CategorySnapshot func(*sql.Selector)
 // DictionarySnapshot is the predicate function for dictionarysnapshot builders.
 type DictionarySnapshot func(*sql.Selector)
 
+// ListingMedia is the predicate function for listingmedia builders.
+type ListingMedia func(*sql.Selector)
+
+// ListingProduct is the predicate function for listingproduct builders.
+type ListingProduct func(*sql.Selector)
+
+// ListingRevision is the predicate function for listingrevision builders.
+type ListingRevision func(*sql.Selector)
+
+// ListingSKU is the predicate function for listingsku builders.
+type ListingSKU func(*sql.Selector)
+
+// PublishBatch is the predicate function for publishbatch builders.
+type PublishBatch func(*sql.Selector)
+
+// PublishItem is the predicate function for publishitem builders.
+type PublishItem func(*sql.Selector)
+
+// PublishRequest is the predicate function for publishrequest builders.
+type PublishRequest func(*sql.Selector)
+
+// SKUWarehouseStock is the predicate function for skuwarehousestock builders.
+type SKUWarehouseStock func(*sql.Selector)
+
 // Shop is the predicate function for shop builders.
 type Shop func(*sql.Selector)
 

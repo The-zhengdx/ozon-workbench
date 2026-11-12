@@ -11,7 +11,15 @@ import (
 	"ozon-workbench/internal/data/ent/categoryprompt"
 	"ozon-workbench/internal/data/ent/categorysnapshot"
 	"ozon-workbench/internal/data/ent/dictionarysnapshot"
+	"ozon-workbench/internal/data/ent/listingmedia"
+	"ozon-workbench/internal/data/ent/listingproduct"
+	"ozon-workbench/internal/data/ent/listingrevision"
+	"ozon-workbench/internal/data/ent/listingsku"
+	"ozon-workbench/internal/data/ent/publishbatch"
+	"ozon-workbench/internal/data/ent/publishitem"
+	"ozon-workbench/internal/data/ent/publishrequest"
 	"ozon-workbench/internal/data/ent/shop"
+	"ozon-workbench/internal/data/ent/skuwarehousestock"
 	"ozon-workbench/internal/data/ent/taskevent"
 	"ozon-workbench/internal/data/ent/workbenchtask"
 	"reflect"
@@ -85,6 +93,14 @@ func checkColumn(table, column string) error {
 			categoryprompt.Table:     categoryprompt.ValidColumn,
 			categorysnapshot.Table:   categorysnapshot.ValidColumn,
 			dictionarysnapshot.Table: dictionarysnapshot.ValidColumn,
+			listingmedia.Table:       listingmedia.ValidColumn,
+			listingproduct.Table:     listingproduct.ValidColumn,
+			listingrevision.Table:    listingrevision.ValidColumn,
+			listingsku.Table:         listingsku.ValidColumn,
+			publishbatch.Table:       publishbatch.ValidColumn,
+			publishitem.Table:        publishitem.ValidColumn,
+			publishrequest.Table:     publishrequest.ValidColumn,
+			skuwarehousestock.Table:  skuwarehousestock.ValidColumn,
 			shop.Table:               shop.ValidColumn,
 			taskevent.Table:          taskevent.ValidColumn,
 			workbenchtask.Table:      workbenchtask.ValidColumn,
