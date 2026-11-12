@@ -38,6 +38,8 @@ type Ozon struct {
 	Mock               bool   `yaml:"mock"`
 	Timeout            string `yaml:"timeout"`
 	RateLimitPerSecond int    `yaml:"rate_limit_per_second"`
+	// Proxy is "", direct, env, or an http/https/socks5 URL. See NormalizeOzonProxy.
+	Proxy string `yaml:"proxy"`
 }
 
 type Security struct {
@@ -71,6 +73,7 @@ type Runtime struct {
 	OzonMock             bool
 	OzonTimeout          time.Duration
 	OzonRateLimit        int
+	OzonProxy            string
 	CredentialKey        string
 	MediaRoot            string
 	MaxZipBytes          int64
@@ -131,6 +134,9 @@ func Load(path string) (*Runtime, error) {
 		}
 		cfg.Ozon.RateLimitPerSecond = n
 	}
+	if v := strings.TrimSpace(os.Getenv("OZON_PROXY")); v != "" {
+		cfg.Ozon.Proxy = v
+	}
 	if v := os.Getenv("OZON_CREDENTIAL_KEY"); strings.TrimSpace(v) != "" {
 		cfg.Security.CredentialKey = v
 	}
@@ -162,6 +168,10 @@ func Load(path string) (*Runtime, error) {
 	}
 	if strings.TrimSpace(cfg.Ozon.BaseURL) == "" {
 		cfg.Ozon.BaseURL = "https://api-seller.ozon.ru"
+	}
+	proxy, err := NormalizeOzonProxy(cfg.Ozon.Proxy)
+	if err != nil {
+		return nil, err
 	}
 	codexTimeout, err := time.ParseDuration(defaultString(cfg.Codex.Timeout, "15m"))
 	if err != nil {
@@ -199,6 +209,7 @@ func Load(path string) (*Runtime, error) {
 		OzonMock:             cfg.Ozon.Mock,
 		OzonTimeout:          ozonTimeout,
 		OzonRateLimit:        cfg.Ozon.RateLimitPerSecond,
+		OzonProxy:            proxy,
 		CredentialKey:        cfg.Security.CredentialKey,
 		MediaRoot:            cfg.Media.Root,
 		MaxZipBytes:          cfg.Media.MaxZipBytes,

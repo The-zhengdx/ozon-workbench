@@ -25,7 +25,23 @@ func initApp(cfg *conf.Runtime, logger log.Logger) (*kratos.App, func(), error) 
 		cleanup()
 		return nil, nil, err
 	}
-	ozon := data.NewOzonClient(cfg.OzonBaseURL, cfg.OzonTimeout, cfg.OzonRateLimit, cfg.OzonMock)
+	ozon, err := data.NewOzonClient(cfg.OzonBaseURL, cfg.OzonTimeout, cfg.OzonRateLimit, cfg.OzonMock, cfg.OzonProxy)
+	if err != nil {
+		cleanup()
+		return nil, nil, err
+	}
+	if cfg.OzonMock {
+		log.NewHelper(logger).Warn("OZON_MOCK is on: warehouse sync returns built-in samples and does not call api-seller.ozon.ru. Export OZON_MOCK=false in the server process; a value only in an unexported .env file is ignored. config.yaml ozon.mock and docker compose both default to true.")
+	} else {
+		n, perr := data.PurgeSampleWarehouses(context.Background(), dataData)
+		if perr != nil {
+			cleanup()
+			return nil, nil, perr
+		}
+		if n > 0 {
+			log.NewHelper(logger).Infof("removed built-in sample warehouses from %d shops", n)
+		}
+	}
 	shopRepo := data.NewShopRepo(dataData)
 	categoryRepo := data.NewCategoryRepo(dataData)
 	taskRepo := data.NewTaskRepo(dataData)

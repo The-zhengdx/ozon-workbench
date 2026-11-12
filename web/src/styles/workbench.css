@@ -64,7 +64,7 @@ main { min-width: 0; }
 }
 .topLeft { display: flex; gap: 12px; align-items: center; min-width: 0; flex: 1; }
 .topLeft label { flex: none; }
-.demo { font-size: 12px; color: #c2d0dd; white-space: nowrap; }
+.demo { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #c2d0dd; white-space: nowrap; }
 .content { padding: 34px clamp(16px, 3vw, 46px) 50px; max-width: 1790px; margin: auto; }
 .head { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; margin-bottom: 26px; }
 .head h1 { margin: 0; font-size: clamp(25px, 2.6vw, 38px); letter-spacing: -.035em; line-height: 1.25; }

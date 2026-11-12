@@ -13,6 +13,8 @@ export interface Shop {
   currency_code: string | null;
   api_key_configured: boolean;
   warehouses: Warehouse[];
+  warehouses_synced_at: string | null;
+  warehouses_mock: boolean;
   is_default: boolean;
   archived: boolean;
   last_tested_at: string | null;

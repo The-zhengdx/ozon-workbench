@@ -25,6 +25,7 @@ func NewHTTPServer(cfg *conf.Runtime, shops *service.ShopService, categories *se
 		return ctx.JSON(http.StatusOK, map[string]any{
 			"service":    "ozon-workbench",
 			"mock":       cfg.OzonMock,
+			"proxy":      cfg.OzonProxy,
 			"codex_mock": cfg.CodexMock,
 			"phase":      2,
 		})
@@ -34,7 +35,7 @@ func NewHTTPServer(cfg *conf.Runtime, shops *service.ShopService, categories *se
 	categories.Register(api)
 	tasks.Register(api)
 	srv.HandlePrefix("/media/", http.HandlerFunc(tasks.ServeMedia))
-	log.NewHelper(logger).Infof("http listening on %s ozon_mock=%v codex_mock=%v", cfg.HTTPAddr, cfg.OzonMock, cfg.CodexMock)
+	log.NewHelper(logger).Infof("http listening on %s ozon_mock=%v proxy=%s codex_mock=%v", cfg.HTTPAddr, cfg.OzonMock, cfg.OzonProxy, cfg.CodexMock)
 	return srv
 }
 

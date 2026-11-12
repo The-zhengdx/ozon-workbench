@@ -143,6 +143,8 @@ var (
 		{Name: "currency_code", Type: field.TypeString, Nullable: true, Size: 3},
 		{Name: "api_key_ciphertext", Type: field.TypeBytes},
 		{Name: "warehouses", Type: field.TypeJSON, Nullable: true},
+		{Name: "warehouses_synced_at", Type: field.TypeTime, Nullable: true},
+		{Name: "warehouses_mock", Type: field.TypeBool, Default: false},
 		{Name: "is_default", Type: field.TypeBool, Default: false},
 		{Name: "archived", Type: field.TypeBool, Default: false},
 		{Name: "last_tested_at", Type: field.TypeTime, Nullable: true},
@@ -160,7 +162,7 @@ var (
 			{
 				Name:    "shop_archived",
 				Unique:  false,
-				Columns: []*schema.Column{ShopsColumns[7]},
+				Columns: []*schema.Column{ShopsColumns[9]},
 			},
 		},
 	}

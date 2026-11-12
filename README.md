@@ -21,7 +21,7 @@
 
 后端是 Go 1.23、Kratos v2 模块化单体（Service → Biz → Data）、Google Wire、Ent 和 PostgreSQL。前端是 Vue 3、Vite、Pinia、Ant Design Vue 和 Tailwind。开发时 Vite 把 `/api` 代理到后端；`make build` 之后单个二进制也可以托管构建好的页面。
 
-默认 `OZON_MOCK=true`。Ozon 客户端仍按正式文档组请求（`Client-Id`、`Api-Key`、路径和 JSON），只是由进程内传输层返回示例数据，不访问 `api-seller.ozon.ru`。把 `OZON_MOCK=false` 后才会打真实接口。模拟环境下，Client ID 或 API Key 填 `invalid` 会返回 Ozon 风格的 403 文案。
+默认 `OZON_MOCK=true`（`configs/config.yaml` 的 `ozon.mock`，以及 `docker compose` 在变量未设置时的默认值）。Ozon 客户端仍按正式文档组请求（`Client-Id`、`Api-Key`、路径和 JSON），只是由进程内传输层返回示例仓库，不访问 `api-seller.ozon.ru`。示例仓库是「莫斯科一号仓 / 20605650762000」等三条，页面会标成「模拟」。把进程环境里的 `OZON_MOCK=false` 后才会打真实接口。只写在 `.env` 里、没有 `export` 到 server 进程，不会生效。模拟环境下，Client ID 或 API Key 填 `invalid` 会返回 Ozon 风格的 403 文案。真实模式下，启动时会删掉以前存进店铺里的这三条示例仓库；连接失败不会拿它们冒充同步结果，上次真正成功的仓库会留下来并标出同步时间。
 
 默认 `CODEX_MOCK=true`。模拟运行器不调用本机 `codex`，但会走同一套状态机：先进入待补充数据，补充后生成 `主SKU-1`、`主SKU-2` 文案，再进入视觉方案，并在同一会话里回答追问。把 `CODEX_MOCK=false` 后，按 `configs/config.yaml` 的命令模板执行非交互命令：
 
@@ -54,7 +54,7 @@ cd web && npm install && npm run dev   # http://127.0.0.1:43123
 
 `make build` 会构建前端并打出 `bin/ozon-workbench`。`docker compose --profile app up --build` 会同时启动数据库和这个二进制。
 
-服务启动时用 Ent 自动建表。`migrations/001_init.sql` 与 `migrations/002_workbench_tasks.sql` 是同一套表结构，便于审阅。
+服务启动时用 Ent 自动建表。`migrations/001_init.sql`、`migrations/002_warehouse_sync.sql` 和 `migrations/003_workbench_tasks.sql` 是同一套表结构，便于审阅。
 
 素材目录默认是 `data/media`（可用 `MEDIA_ROOT` 覆盖）。每个任务解压到 `data/media/tasks/<uuid>/`，路径记在 `zip_local_path`。页面通过 `/media/tasks/{id}/...` 预览图片。
 
@@ -82,7 +82,38 @@ Proto 描述了 HTTP 路径和字段。运行中的路由由 `internal/service` 
 make test
 ```
 
-`internal/biz` 覆盖建店校验、Client ID 唯一、空密钥沿用、币种保持为空、连接失败回显，以及类目展开、同步失败保留快照、同类目两个类型的属性和提示词互不覆盖。素材加工覆盖提示词渲染、子 SKU 解析、审核开关只推进当前环节、并发版本冲突、会话追问互不串线，以及时间线写入前的密钥脱敏。`internal/media` 覆盖 zip 路径穿越、绝对路径、文件数和体积上限、GBK 文件名、UTF-8 中文名，以及成功和失败后都删除压缩包。`internal/data` 用 `httptest` 检查 Ozon 客户端的请求头、分页、429 重试和属性接口正文。真实 Codex CLI 不在 CI 里执行；`codex_cli_test` 用假二进制检查 `exec` / `exec resume` 参数、stdin 提示词和 JSONL 解析。
+`internal/biz` 覆盖建店校验、Client ID 唯一、空密钥沿用、币种保持为空、连接失败回显、失败时保留上次真实仓库并清掉示例仓库，以及类目展开、同步失败保留快照、同类目两个类型的属性和提示词互不覆盖。素材加工覆盖提示词渲染、子 SKU 解析、审核开关只推进当前环节、并发版本冲突、会话追问互不串线，以及时间线写入前的密钥脱敏。`internal/media` 覆盖 zip 路径穿越、绝对路径、文件数和体积上限、GBK 文件名、UTF-8 中文名，以及成功和失败后都删除压缩包。`internal/data` 用 `httptest` 检查 Ozon 客户端的请求头、分页、429 重试、传输错误重试、代理模式和属性接口正文。真实 Codex CLI 不在 CI 里执行；`codex_cli_test` 用假二进制检查 `exec` / `exec resume` 参数、stdin 提示词和 JSONL 解析。
+
+## 连接 Ozon 失败 / EOF
+
+测试连接调用的是当前的 `POST /v2/warehouse/list`（`/v1/warehouse/list` 已弃用）。请求体是 `{"limit":200}`，下一页才带 `cursor`。头是 `Content-Type: application/json`、`Client-Id`（去掉首尾空白后的十进制卖家 ID）、`Api-Key`。凭证不对时，Ozon 返回 JSON，例如 HTTP 400 `Invalid Api-Key` 或 `Client-Id header value should be positive integer`。那是接口错误，界面会显示 `Ozon HTTP …`。
+
+`Post "https://api-seller.ozon.ru/v2/warehouse/list": EOF` 不是这种错误。连接在收到 HTTP 响应之前被关掉了。在本机用 curl 能复现一条会成功的路径：ALPN 为 `http/1.1`，请求发出后对端发起 TLS 重协商（schannel 日志里是 `remote party requests renegotiation`，而且会出现两次），协商完成后才是 HTTP 400 JSON。Go 的 `crypto/tls` 默认 `RenegotiateNever`，遇到 HelloRequest 会关掉连接，`net/http` 就报 EOF。重协商只存在于 TLS 1.2，和 HTTP/2 不兼容。客户端因此强制 HTTP/1.1，并设置 `RenegotiateFreelyAsClient`（只允许一次的话，第二次重协商仍会失败）。`api-seller.ozon.ru` 自己优先协商 TLS 1.3，不会重协商；会重协商的是部分 TLS 1.2 路径，包括 TUN / fake-ip 代理。
+
+Go 也不看代理软件的规则。`ozon.proxy` 决定这个进程怎么走：
+
+| 值 | 行为 |
+|---|---|
+| 空或 `direct` | 直连，忽略 `HTTP_PROXY` / `HTTPS_PROXY` / `ALL_PROXY` |
+| `env` | 使用这些环境变量，以及 `NO_PROXY` |
+| `http://127.0.0.1:7890` 或 `socks5://127.0.0.1:7891` | 固定走这个代理 |
+
+环境变量 `OZON_PROXY` 优先于 `configs/config.yaml`。页面顶部在真实模式下会显示当前是直连还是哪一个代理。TUN / fake-ip 模式在流量进进程之前就拦截了：DNS 若得到 `198.18.0.0/15` 或 `2001:2::`，规则里把含 `ozon` 的域名设为 DIRECT 也仍然经过代理出站。那种情况下 curl 和本程序走的是同一条 TLS 路径。
+
+在 Windows 上可以这样对比（Client ID 用 `1`、Key 用 `dummy` 即可，成功的标志是 JSON，不是 200）：
+
+```powershell
+nslookup api-seller.ozon.ru
+echo %HTTP_PROXY% %HTTPS_PROXY% %ALL_PROXY% %NO_PROXY%
+
+curl.exe -sv --ssl-no-revoke -X POST "https://api-seller.ozon.ru/v2/warehouse/list" -H "Content-Type: application/json" -H "Client-Id: 1" -H "Api-Key: dummy" --data "{\"limit\":200}"
+
+curl.exe -sv --noproxy "*" --ssl-no-revoke -X POST "https://api-seller.ozon.ru/v2/warehouse/list" -H "Content-Type: application/json" -H "Client-Id: 1" -H "Api-Key: dummy" --data "{\"limit\":200}"
+
+curl.exe -sv -x http://127.0.0.1:7890 --ssl-no-revoke -X POST "https://api-seller.ozon.ru/v2/warehouse/list" -H "Content-Type: application/json" -H "Client-Id: 1" -H "Api-Key: dummy" --data "{\"limit\":200}"
+```
+
+把 `7890` 换成自己的本地代理端口。`--noproxy` 躲不开 TUN。若 curl 已经能拿到 JSON，而旧版程序仍是 EOF，更新到这个版本后再测一次。若 curl 直连也是 connection reset / EOF，而带 `-x` 能拿到 JSON，把 `ozon.proxy` 设成同一个 URL，并让代理规则把 `ozon.ru` 转到可用节点，不要设成 DIRECT。
 
 ## 这一阶段的取舍
 

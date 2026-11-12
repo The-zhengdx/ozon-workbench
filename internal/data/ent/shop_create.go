@@ -61,6 +61,34 @@ func (sc *ShopCreate) SetWarehouses(s []schema.Warehouse) *ShopCreate {
 	return sc
 }
 
+// SetWarehousesSyncedAt sets the "warehouses_synced_at" field.
+func (sc *ShopCreate) SetWarehousesSyncedAt(t time.Time) *ShopCreate {
+	sc.mutation.SetWarehousesSyncedAt(t)
+	return sc
+}
+
+// SetNillableWarehousesSyncedAt sets the "warehouses_synced_at" field if the given value is not nil.
+func (sc *ShopCreate) SetNillableWarehousesSyncedAt(t *time.Time) *ShopCreate {
+	if t != nil {
+		sc.SetWarehousesSyncedAt(*t)
+	}
+	return sc
+}
+
+// SetWarehousesMock sets the "warehouses_mock" field.
+func (sc *ShopCreate) SetWarehousesMock(b bool) *ShopCreate {
+	sc.mutation.SetWarehousesMock(b)
+	return sc
+}
+
+// SetNillableWarehousesMock sets the "warehouses_mock" field if the given value is not nil.
+func (sc *ShopCreate) SetNillableWarehousesMock(b *bool) *ShopCreate {
+	if b != nil {
+		sc.SetWarehousesMock(*b)
+	}
+	return sc
+}
+
 // SetIsDefault sets the "is_default" field.
 func (sc *ShopCreate) SetIsDefault(b bool) *ShopCreate {
 	sc.mutation.SetIsDefault(b)
@@ -194,6 +222,10 @@ func (sc *ShopCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (sc *ShopCreate) defaults() {
+	if _, ok := sc.mutation.WarehousesMock(); !ok {
+		v := shop.DefaultWarehousesMock
+		sc.mutation.SetWarehousesMock(v)
+	}
 	if _, ok := sc.mutation.IsDefault(); !ok {
 		v := shop.DefaultIsDefault
 		sc.mutation.SetIsDefault(v)
@@ -237,6 +269,9 @@ func (sc *ShopCreate) check() error {
 	}
 	if _, ok := sc.mutation.APIKeyCiphertext(); !ok {
 		return &ValidationError{Name: "api_key_ciphertext", err: errors.New(`ent: missing required field "Shop.api_key_ciphertext"`)}
+	}
+	if _, ok := sc.mutation.WarehousesMock(); !ok {
+		return &ValidationError{Name: "warehouses_mock", err: errors.New(`ent: missing required field "Shop.warehouses_mock"`)}
 	}
 	if _, ok := sc.mutation.IsDefault(); !ok {
 		return &ValidationError{Name: "is_default", err: errors.New(`ent: missing required field "Shop.is_default"`)}
@@ -301,6 +336,14 @@ func (sc *ShopCreate) createSpec() (*Shop, *sqlgraph.CreateSpec) {
 	if value, ok := sc.mutation.Warehouses(); ok {
 		_spec.SetField(shop.FieldWarehouses, field.TypeJSON, value)
 		_node.Warehouses = value
+	}
+	if value, ok := sc.mutation.WarehousesSyncedAt(); ok {
+		_spec.SetField(shop.FieldWarehousesSyncedAt, field.TypeTime, value)
+		_node.WarehousesSyncedAt = &value
+	}
+	if value, ok := sc.mutation.WarehousesMock(); ok {
+		_spec.SetField(shop.FieldWarehousesMock, field.TypeBool, value)
+		_node.WarehousesMock = value
 	}
 	if value, ok := sc.mutation.IsDefault(); ok {
 		_spec.SetField(shop.FieldIsDefault, field.TypeBool, value)
@@ -451,6 +494,36 @@ func (u *ShopUpsert) UpdateWarehouses() *ShopUpsert {
 // ClearWarehouses clears the value of the "warehouses" field.
 func (u *ShopUpsert) ClearWarehouses() *ShopUpsert {
 	u.SetNull(shop.FieldWarehouses)
+	return u
+}
+
+// SetWarehousesSyncedAt sets the "warehouses_synced_at" field.
+func (u *ShopUpsert) SetWarehousesSyncedAt(v time.Time) *ShopUpsert {
+	u.Set(shop.FieldWarehousesSyncedAt, v)
+	return u
+}
+
+// UpdateWarehousesSyncedAt sets the "warehouses_synced_at" field to the value that was provided on create.
+func (u *ShopUpsert) UpdateWarehousesSyncedAt() *ShopUpsert {
+	u.SetExcluded(shop.FieldWarehousesSyncedAt)
+	return u
+}
+
+// ClearWarehousesSyncedAt clears the value of the "warehouses_synced_at" field.
+func (u *ShopUpsert) ClearWarehousesSyncedAt() *ShopUpsert {
+	u.SetNull(shop.FieldWarehousesSyncedAt)
+	return u
+}
+
+// SetWarehousesMock sets the "warehouses_mock" field.
+func (u *ShopUpsert) SetWarehousesMock(v bool) *ShopUpsert {
+	u.Set(shop.FieldWarehousesMock, v)
+	return u
+}
+
+// UpdateWarehousesMock sets the "warehouses_mock" field to the value that was provided on create.
+func (u *ShopUpsert) UpdateWarehousesMock() *ShopUpsert {
+	u.SetExcluded(shop.FieldWarehousesMock)
 	return u
 }
 
@@ -670,6 +743,41 @@ func (u *ShopUpsertOne) UpdateWarehouses() *ShopUpsertOne {
 func (u *ShopUpsertOne) ClearWarehouses() *ShopUpsertOne {
 	return u.Update(func(s *ShopUpsert) {
 		s.ClearWarehouses()
+	})
+}
+
+// SetWarehousesSyncedAt sets the "warehouses_synced_at" field.
+func (u *ShopUpsertOne) SetWarehousesSyncedAt(v time.Time) *ShopUpsertOne {
+	return u.Update(func(s *ShopUpsert) {
+		s.SetWarehousesSyncedAt(v)
+	})
+}
+
+// UpdateWarehousesSyncedAt sets the "warehouses_synced_at" field to the value that was provided on create.
+func (u *ShopUpsertOne) UpdateWarehousesSyncedAt() *ShopUpsertOne {
+	return u.Update(func(s *ShopUpsert) {
+		s.UpdateWarehousesSyncedAt()
+	})
+}
+
+// ClearWarehousesSyncedAt clears the value of the "warehouses_synced_at" field.
+func (u *ShopUpsertOne) ClearWarehousesSyncedAt() *ShopUpsertOne {
+	return u.Update(func(s *ShopUpsert) {
+		s.ClearWarehousesSyncedAt()
+	})
+}
+
+// SetWarehousesMock sets the "warehouses_mock" field.
+func (u *ShopUpsertOne) SetWarehousesMock(v bool) *ShopUpsertOne {
+	return u.Update(func(s *ShopUpsert) {
+		s.SetWarehousesMock(v)
+	})
+}
+
+// UpdateWarehousesMock sets the "warehouses_mock" field to the value that was provided on create.
+func (u *ShopUpsertOne) UpdateWarehousesMock() *ShopUpsertOne {
+	return u.Update(func(s *ShopUpsert) {
+		s.UpdateWarehousesMock()
 	})
 }
 
@@ -1070,6 +1178,41 @@ func (u *ShopUpsertBulk) UpdateWarehouses() *ShopUpsertBulk {
 func (u *ShopUpsertBulk) ClearWarehouses() *ShopUpsertBulk {
 	return u.Update(func(s *ShopUpsert) {
 		s.ClearWarehouses()
+	})
+}
+
+// SetWarehousesSyncedAt sets the "warehouses_synced_at" field.
+func (u *ShopUpsertBulk) SetWarehousesSyncedAt(v time.Time) *ShopUpsertBulk {
+	return u.Update(func(s *ShopUpsert) {
+		s.SetWarehousesSyncedAt(v)
+	})
+}
+
+// UpdateWarehousesSyncedAt sets the "warehouses_synced_at" field to the value that was provided on create.
+func (u *ShopUpsertBulk) UpdateWarehousesSyncedAt() *ShopUpsertBulk {
+	return u.Update(func(s *ShopUpsert) {
+		s.UpdateWarehousesSyncedAt()
+	})
+}
+
+// ClearWarehousesSyncedAt clears the value of the "warehouses_synced_at" field.
+func (u *ShopUpsertBulk) ClearWarehousesSyncedAt() *ShopUpsertBulk {
+	return u.Update(func(s *ShopUpsert) {
+		s.ClearWarehousesSyncedAt()
+	})
+}
+
+// SetWarehousesMock sets the "warehouses_mock" field.
+func (u *ShopUpsertBulk) SetWarehousesMock(v bool) *ShopUpsertBulk {
+	return u.Update(func(s *ShopUpsert) {
+		s.SetWarehousesMock(v)
+	})
+}
+
+// UpdateWarehousesMock sets the "warehouses_mock" field to the value that was provided on create.
+func (u *ShopUpsertBulk) UpdateWarehousesMock() *ShopUpsertBulk {
+	return u.Update(func(s *ShopUpsert) {
+		s.UpdateWarehousesMock()
 	})
 }
 

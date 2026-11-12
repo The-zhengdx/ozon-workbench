@@ -6,9 +6,17 @@ data:
     dsn: postgres://ozon:ozon@127.0.0.1:5432/ozon_workbench?sslmode=disable
 ozon:
   base_url: https://api-seller.ozon.ru
+  # true：不访问 Ozon，仓库接口返回内置示例。进程环境变量 OZON_MOCK 优先。
+  # 写在 .env 里但没有 export 到 server 进程时不会生效。docker compose 未设置时也是 true。
   mock: true
   timeout: 45s
   rate_limit_per_second: 10
+  # 访问 api-seller.ozon.ru 的代理。环境变量 OZON_PROXY 优先。
+  #   "" 或 direct：直连，忽略 HTTP_PROXY / HTTPS_PROXY / ALL_PROXY
+  #   env：使用上述环境变量（可用 NO_PROXY 排除域名）
+  #   http://127.0.0.1:7890 或 socks5://127.0.0.1:7891：固定走这个代理
+  # Go 不读取 Clash / sing-box 的分流规则。TUN/fake-ip（DNS 得到 198.18.0.0/15 或 2001:2::）会在进进程之前拦截连接。
+  proxy: ""
 security:
   # 留空时只从环境变量 OZON_CREDENTIAL_KEY 读取，仓库中不存放可用的生产密钥。
   credential_key: ""

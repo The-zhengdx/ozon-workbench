@@ -44,6 +44,10 @@ func cloneShop(in *Shop) *Shop {
 		v := *in.LastTestMessage
 		out.LastTestMessage = &v
 	}
+	if in.WarehousesSyncedAt != nil {
+		v := *in.WarehousesSyncedAt
+		out.WarehousesSyncedAt = &v
+	}
 	return &out
 }
 
@@ -137,6 +141,7 @@ type fakeOzon struct {
 	err        error
 	calls      int
 	lastCred   OzonCred
+	mocked     bool
 }
 
 func (f *fakeOzon) ListWarehouses(_ context.Context, cred OzonCred) ([]Warehouse, error) {
@@ -163,6 +168,8 @@ func (f *fakeOzon) AttributeValues(context.Context, OzonCred, int64, int64, int6
 func (f *fakeOzon) SearchAttributeValues(context.Context, OzonCred, int64, int64, int64, string, int) ([]map[string]any, error) {
 	return nil, errors.New("unused")
 }
+
+func (f *fakeOzon) Mocked() bool { return f.mocked }
 
 func newShopUC(oz OzonGateway) (*ShopUsecase, *memShops) {
 	repo := newMemShops()
@@ -314,5 +321,76 @@ func TestArchiveAndDefault(t *testing.T) {
 	}
 	if !second.IsDefault {
 		t.Fatal("expected the remaining shop to become default")
+	}
+}
+
+func TestRealSyncKeepsLastSuccessWhenRetestFails(t *testing.T) {
+	oz := &fakeOzon{warehouses: []Warehouse{{WarehouseID: 99, Name: "真实仓", Status: "created"}}}
+	uc, _ := newShopUC(oz)
+	created, err := uc.Create(context.Background(), "甲店", "6134344", "secret")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if created.Shop.WarehousesMock || created.Shop.WarehousesSyncedAt == nil || created.Shop.Warehouses[0].WarehouseID != 99 {
+		t.Fatalf("sync %#v", created.Shop)
+	}
+	synced := *created.Shop.WarehousesSyncedAt
+	oz.err = errors.New("无法连接 Ozon")
+	again, err := uc.TestConnection(context.Background(), created.Shop.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if again.Connection.OK || len(again.Shop.Warehouses) != 1 || again.Shop.Warehouses[0].WarehouseID != 99 {
+		t.Fatalf("kept %#v msg %s", again.Shop.Warehouses, again.Connection.Message)
+	}
+	if again.Shop.WarehousesSyncedAt == nil || !again.Shop.WarehousesSyncedAt.Equal(synced) {
+		t.Fatalf("synced at changed: %#v", again.Shop.WarehousesSyncedAt)
+	}
+	if again.Shop.WarehousesMock {
+		t.Fatal("real warehouses marked mock")
+	}
+}
+
+func TestFailedRealSyncDropsStoredSamples(t *testing.T) {
+	oz := &fakeOzon{warehouses: SampleWarehouses(), mocked: true}
+	uc, repo := newShopUC(oz)
+	created, err := uc.Create(context.Background(), "甲店", "6134344", "secret")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !created.Shop.WarehousesMock || len(created.Shop.Warehouses) != 3 || created.Connection.Message == "" {
+		t.Fatalf("mock create %#v %s", created.Shop.Warehouses, created.Connection.Message)
+	}
+	oz.mocked = false
+	oz.err = errors.New(`Post "https://api-seller.ozon.ru/v2/warehouse/list": EOF`)
+	again, err := uc.TestConnection(context.Background(), created.Shop.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if again.Connection.OK || len(again.Shop.Warehouses) != 0 || again.Shop.WarehousesMock || again.Shop.WarehousesSyncedAt != nil {
+		t.Fatalf("after failure %#v msg %s", again.Shop, again.Connection.Message)
+	}
+	stored, err := repo.Get(context.Background(), created.Shop.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(stored.Warehouses) != 0 || stored.WarehousesMock {
+		t.Fatalf("persisted %#v", stored.Warehouses)
+	}
+}
+
+func TestListHidesSamplesWhenNotMocked(t *testing.T) {
+	oz := &fakeOzon{warehouses: SampleWarehouses(), mocked: true}
+	uc, _ := newShopUC(oz)
+	if _, err := uc.Create(context.Background(), "甲店", "6134344", "secret"); err != nil {
+		t.Fatal(err)
+	}
+	oz.mocked = false
+	rows, err := uc.List(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) != 1 || len(rows[0].Warehouses) != 0 || rows[0].WarehousesMock {
+		t.Fatalf("listed %#v", rows[0])
 	}
 }
