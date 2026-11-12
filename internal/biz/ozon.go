@@ -36,6 +36,8 @@ type OzonGateway interface {
 	Attributes(ctx context.Context, cred OzonCred, categoryID, typeID int64, language string) ([]map[string]any, error)
 	AttributeValues(ctx context.Context, cred OzonCred, categoryID, typeID, attributeID, lastValueID int64, limit int, language string) (*ValuePage, error)
 	SearchAttributeValues(ctx context.Context, cred OzonCred, categoryID, typeID, attributeID int64, value string, limit int) ([]map[string]any, error)
+	// Mocked reports whether ListWarehouses returns built-in samples instead of calling Ozon.
+	Mocked() bool
 }
 
 // Cipher encrypts shop API keys at rest.
@@ -46,36 +48,40 @@ type Cipher interface {
 
 // Shop is the persisted shop. APIKeyCiphertext stays inside the process.
 type Shop struct {
-	ID               int
-	Name             string
-	ClientID         string
-	CurrencyCode     *string
-	APIKeyCiphertext []byte
-	Warehouses       []Warehouse
-	IsDefault        bool
-	Archived         bool
-	LastTestedAt     *time.Time
-	LastTestOK       *bool
-	LastTestMessage  *string
-	CreatedAt        time.Time
-	UpdatedAt        time.Time
+	ID                 int
+	Name               string
+	ClientID           string
+	CurrencyCode       *string
+	APIKeyCiphertext   []byte
+	Warehouses         []Warehouse
+	WarehousesSyncedAt *time.Time
+	WarehousesMock     bool
+	IsDefault          bool
+	Archived           bool
+	LastTestedAt       *time.Time
+	LastTestOK         *bool
+	LastTestMessage    *string
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
 }
 
 // ShopView is the HTTP shape. It has no key material.
 type ShopView struct {
-	ID               int         `json:"id"`
-	Name             string      `json:"name"`
-	ClientID         string      `json:"client_id"`
-	CurrencyCode     *string     `json:"currency_code"`
-	APIKeyConfigured bool        `json:"api_key_configured"`
-	Warehouses       []Warehouse `json:"warehouses"`
-	IsDefault        bool        `json:"is_default"`
-	Archived         bool        `json:"archived"`
-	LastTestedAt     *time.Time  `json:"last_tested_at"`
-	LastTestOK       *bool       `json:"last_test_ok"`
-	LastTestMessage  *string     `json:"last_test_message"`
-	CreatedAt        time.Time   `json:"created_at"`
-	UpdatedAt        time.Time   `json:"updated_at"`
+	ID                 int         `json:"id"`
+	Name               string      `json:"name"`
+	ClientID           string      `json:"client_id"`
+	CurrencyCode       *string     `json:"currency_code"`
+	APIKeyConfigured   bool        `json:"api_key_configured"`
+	Warehouses         []Warehouse `json:"warehouses"`
+	WarehousesSyncedAt *time.Time  `json:"warehouses_synced_at"`
+	WarehousesMock     bool        `json:"warehouses_mock"`
+	IsDefault          bool        `json:"is_default"`
+	Archived           bool        `json:"archived"`
+	LastTestedAt       *time.Time  `json:"last_tested_at"`
+	LastTestOK         *bool       `json:"last_test_ok"`
+	LastTestMessage    *string     `json:"last_test_message"`
+	CreatedAt          time.Time   `json:"created_at"`
+	UpdatedAt          time.Time   `json:"updated_at"`
 }
 
 // View strips secrets. Currency stays null until a later quoting step records it.
@@ -85,19 +91,21 @@ func (s *Shop) View() ShopView {
 		wh = []Warehouse{}
 	}
 	return ShopView{
-		ID:               s.ID,
-		Name:             s.Name,
-		ClientID:         s.ClientID,
-		CurrencyCode:     s.CurrencyCode,
-		APIKeyConfigured: len(s.APIKeyCiphertext) > 0,
-		Warehouses:       wh,
-		IsDefault:        s.IsDefault,
-		Archived:         s.Archived,
-		LastTestedAt:     s.LastTestedAt,
-		LastTestOK:       s.LastTestOK,
-		LastTestMessage:  s.LastTestMessage,
-		CreatedAt:        s.CreatedAt,
-		UpdatedAt:        s.UpdatedAt,
+		ID:                 s.ID,
+		Name:               s.Name,
+		ClientID:           s.ClientID,
+		CurrencyCode:       s.CurrencyCode,
+		APIKeyConfigured:   len(s.APIKeyCiphertext) > 0,
+		Warehouses:         wh,
+		WarehousesSyncedAt: s.WarehousesSyncedAt,
+		WarehousesMock:     s.WarehousesMock,
+		IsDefault:          s.IsDefault,
+		Archived:           s.Archived,
+		LastTestedAt:       s.LastTestedAt,
+		LastTestOK:         s.LastTestOK,
+		LastTestMessage:    s.LastTestMessage,
+		CreatedAt:          s.CreatedAt,
+		UpdatedAt:          s.UpdatedAt,
 	}
 }
 

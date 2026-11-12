@@ -2,10 +2,14 @@ package data
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -15,7 +19,10 @@ import (
 func testClient(t *testing.T, handler http.HandlerFunc) (*OzonClient, *httptest.Server) {
 	t.Helper()
 	srv := httptest.NewServer(handler)
-	client := NewOzonClient(srv.URL, 5*time.Second, 1000, false)
+	client, err := NewOzonClient(srv.URL, 5*time.Second, 1000, false, "direct")
+	if err != nil {
+		t.Fatal(err)
+	}
 	client.retryBase = time.Millisecond
 	return client, srv
 }
@@ -28,8 +35,11 @@ func TestListWarehousesPaginatesAndSendsAuth(t *testing.T) {
 		if r.URL.Path != "/v2/warehouse/list" || r.Method != http.MethodPost {
 			t.Errorf("path %s %s", r.Method, r.URL.Path)
 		}
-		if r.Header.Get("Client-Id") != "shop-1" || r.Header.Get("Api-Key") != "secret" || r.Header.Get("Content-Type") != "application/json" {
-			t.Errorf("headers = %#v", r.Header)
+		if r.ProtoMajor != 1 {
+			t.Errorf("proto %s", r.Proto)
+		}
+		if r.Header.Get("Client-Id") != "shop-1" || r.Header.Get("Api-Key") != "secret" || r.Header.Get("Content-Type") != "application/json" || r.Header.Get("User-Agent") != "ozon-workbench" {
+			t.Errorf("headers = %#v proto %s", r.Header, r.Proto)
 		}
 		sawAuth = true
 		var body map[string]any
@@ -73,15 +83,17 @@ func TestListWarehousesPaginatesAndSendsAuth(t *testing.T) {
 }
 
 func TestOzonErrorMessageAndRateLimitRetry(t *testing.T) {
+	var forbiddenHits int
 	client, srv := testClient(t, func(w http.ResponseWriter, r *http.Request) {
+		forbiddenHits++
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusForbidden)
 		_, _ = w.Write([]byte(`{"code":7,"message":"Invalid Api-Key, please check the key and try again","details":[]}`))
 	})
 	defer srv.Close()
 	_, err := client.CategoryTree(context.Background(), biz.OzonCred{ClientID: "a", APIKey: "b"}, "ZH_HANS")
-	if err == nil || err.Error() != "Ozon HTTP 403: Invalid Api-Key, please check the key and try again" {
-		t.Fatalf("err %v", err)
+	if err == nil || err.Error() != "Ozon HTTP 403: Invalid Api-Key, please check the key and try again" || forbiddenHits != 1 {
+		t.Fatalf("err %v hits %d", err, forbiddenHits)
 	}
 
 	var hits int
@@ -187,4 +199,205 @@ func TestCategoryAttributeRequestsUseOfficialBodies(t *testing.T) {
 			t.Fatalf("path %d = %s", i, paths[i])
 		}
 	}
+}
+
+func TestTransportAllowsTLSRenegotiationAndHTTP1(t *testing.T) {
+	client, err := NewOzonClient("https://api-seller.ozon.ru", time.Second, 10, false, "direct")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tr, ok := client.httpClient.Transport.(*http.Transport)
+	if !ok {
+		t.Fatalf("transport %T", client.httpClient.Transport)
+	}
+	if tr.ForceAttemptHTTP2 || tr.TLSNextProto == nil {
+		t.Fatal("HTTP/2 is still enabled")
+	}
+	if tr.TLSClientConfig == nil || tr.TLSClientConfig.Renegotiation != tls.RenegotiateFreelyAsClient {
+		t.Fatalf("renegotiation %#v", tr.TLSClientConfig)
+	}
+	if len(tr.TLSClientConfig.NextProtos) != 1 || tr.TLSClientConfig.NextProtos[0] != "http/1.1" {
+		t.Fatalf("alpn %#v", tr.TLSClientConfig.NextProtos)
+	}
+	if tr.Proxy != nil {
+		t.Fatal("direct mode installed a proxy function")
+	}
+	if _, err := NewOzonClient("https://api-seller.ozon.ru", time.Second, 1, true, "ftp://proxy"); err == nil {
+		t.Fatal("invalid proxy should fail even in mock mode")
+	}
+}
+
+func TestClientIDAndKeyAreTrimmed(t *testing.T) {
+	client, srv := testClient(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Client-Id") != "6134344" || r.Header.Get("Api-Key") != "secret" {
+			t.Errorf("headers %#v", r.Header)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"warehouses":[],"cursor":"","has_next":false}`))
+	})
+	defer srv.Close()
+	if _, err := client.ListWarehouses(context.Background(), biz.OzonCred{ClientID: " 6134344\n", APIKey: "\tsecret\r\n"}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestTransportEOFIsRetriedAndExplained(t *testing.T) {
+	var hits int
+	client, srv := testClient(t, func(w http.ResponseWriter, r *http.Request) {
+		hits++
+		if hits == 1 {
+			hj, ok := w.(http.Hijacker)
+			if !ok {
+				t.Fatal("no hijacker")
+			}
+			conn, _, err := hj.Hijack()
+			if err != nil {
+				t.Fatal(err)
+			}
+			conn.Close()
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"result":[{"description_category_id":1,"category_name":"根","disabled":false,"children":[]}]}`))
+	})
+	defer srv.Close()
+	tree, err := client.CategoryTree(context.Background(), biz.OzonCred{ClientID: "1", APIKey: "k"}, "ZH_HANS")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if hits != 2 || len(tree) != 1 {
+		t.Fatalf("hits %d tree %#v", hits, tree)
+	}
+
+	client, srv = testClient(t, func(w http.ResponseWriter, r *http.Request) {
+		hj, ok := w.(http.Hijacker)
+		if !ok {
+			t.Fatal("no hijacker")
+		}
+		conn, _, err := hj.Hijack()
+		if err != nil {
+			t.Fatal(err)
+		}
+		conn.Close()
+	})
+	defer srv.Close()
+	_, err = client.CategoryTree(context.Background(), biz.OzonCred{ClientID: "1", APIKey: "k"}, "ZH_HANS")
+	if err == nil {
+		t.Fatal("expected transport error")
+	}
+	msg := err.Error()
+	for _, part := range []string{"无法连接 Ozon", "不是 Ozon 返回的业务错误", "EOF", "direct", "HTTP_PROXY"} {
+		if !strings.Contains(msg, part) {
+			t.Fatalf("missing %q in %s", part, msg)
+		}
+	}
+	if strings.Contains(msg, "Ozon HTTP") {
+		t.Fatal(msg)
+	}
+}
+
+func TestProxyModes(t *testing.T) {
+	proxyURL, hits := startRecordingProxy(t)
+	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Client-Id") != "1" {
+			t.Errorf("client id %q", r.Header.Get("Client-Id"))
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"warehouses":[],"has_next":false}`))
+	}))
+	defer target.Close()
+
+	t.Setenv("HTTP_PROXY", "http://127.0.0.1:1")
+	t.Setenv("HTTPS_PROXY", "http://127.0.0.1:1")
+	t.Setenv("ALL_PROXY", "http://127.0.0.1:1")
+	t.Setenv("NO_PROXY", "")
+	direct, err := NewOzonClient(target.URL, 5*time.Second, 1000, false, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	direct.retryBase = time.Millisecond
+	if tr, ok := direct.httpClient.Transport.(*http.Transport); !ok || tr.Proxy != nil {
+		t.Fatal("direct mode should ignore HTTP_PROXY")
+	}
+	// 127.0.0.1 is loopback, which ProxyFromEnvironment would also skip, so this request
+	// only checks that a direct client can still complete. The nil Proxy above is the guard.
+	if _, err := direct.ListWarehouses(context.Background(), biz.OzonCred{ClientID: "1", APIKey: "k"}); err != nil {
+		t.Fatal(err)
+	}
+	if atomic.LoadInt32(hits) != 0 {
+		t.Fatalf("direct mode used the recording proxy, hits %d", hits)
+	}
+
+	explicit, err := NewOzonClient(target.URL, 5*time.Second, 1000, false, proxyURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	explicit.retryBase = time.Millisecond
+	if _, err := explicit.ListWarehouses(context.Background(), biz.OzonCred{ClientID: "1", APIKey: "k"}); err != nil {
+		t.Fatal(err)
+	}
+	if atomic.LoadInt32(hits) == 0 {
+		t.Fatal("explicit proxy was not used")
+	}
+
+	t.Setenv("HTTP_PROXY", proxyURL)
+	t.Setenv("HTTPS_PROXY", proxyURL)
+	t.Setenv("ALL_PROXY", "")
+	// Loopback targets skip HTTP_PROXY, so resolve the env proxy against the real Seller host.
+	viaEnv, err := NewOzonClient("https://api-seller.ozon.ru", 5*time.Second, 1000, false, "env")
+	if err != nil {
+		t.Fatal(err)
+	}
+	req, err := http.NewRequest(http.MethodPost, "https://api-seller.ozon.ru/v2/warehouse/list", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	chosen, err := viaEnv.proxyFn(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if chosen == nil || chosen.String() != proxyURL {
+		t.Fatalf("env proxy = %#v, want %s", chosen, proxyURL)
+	}
+	if !strings.Contains(viaEnv.describeProxy(), proxyURL) {
+		t.Fatalf("describe %s", viaEnv.describeProxy())
+	}
+}
+
+func startRecordingProxy(t *testing.T) (string, *int32) {
+	t.Helper()
+	var hits int32
+	direct := &http.Transport{Proxy: nil, TLSNextProto: map[string]func(string, *tls.Conn) http.RoundTripper{}}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&hits, 1)
+		if !r.URL.IsAbs() {
+			http.Error(w, "not a proxy request", http.StatusBadRequest)
+			return
+		}
+		out, err := http.NewRequestWithContext(r.Context(), r.Method, r.URL.String(), r.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		for key, values := range r.Header {
+			for _, value := range values {
+				out.Header.Add(key, value)
+			}
+		}
+		resp, err := direct.RoundTrip(out)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadGateway)
+			return
+		}
+		defer resp.Body.Close()
+		for key, values := range resp.Header {
+			for _, value := range values {
+				w.Header().Add(key, value)
+			}
+		}
+		w.WriteHeader(resp.StatusCode)
+		_, _ = io.Copy(w, resp.Body)
+	}))
+	t.Cleanup(srv.Close)
+	return srv.URL, &hits
 }

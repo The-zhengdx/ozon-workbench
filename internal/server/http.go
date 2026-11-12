@@ -25,6 +25,7 @@ func NewHTTPServer(cfg *conf.Runtime, shops *service.ShopService, categories *se
 		return ctx.JSON(http.StatusOK, map[string]any{
 			"service": "ozon-workbench",
 			"mock":    cfg.OzonMock,
+			"proxy":   cfg.OzonProxy,
 			"phase":   1,
 		})
 	})

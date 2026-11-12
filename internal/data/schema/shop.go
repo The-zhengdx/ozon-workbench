@@ -35,6 +35,11 @@ func (Shop) Fields() []ent.Field {
 		field.String("currency_code").MaxLen(3).Optional().Nillable(),
 		field.Bytes("api_key_ciphertext"),
 		field.JSON("warehouses", []Warehouse{}).Optional(),
+		// warehouses_synced_at is when the current list was last returned by a successful call.
+		// A failed test does not move this timestamp.
+		field.Time("warehouses_synced_at").Optional().Nillable(),
+		// warehouses_mock is true only when the stored list came from the in-process sample client.
+		field.Bool("warehouses_mock").Default(false),
 		field.Bool("is_default").Default(false),
 		field.Bool("archived").Default(false),
 		field.Time("last_tested_at").Optional().Nillable(),

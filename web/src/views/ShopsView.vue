@@ -116,9 +116,16 @@ function when(value: string | null) {
           <div v-if="row.last_test_message" class="sub" :class="{ error: row.last_test_ok === false }" style="margin-top: 8px">
             {{ row.last_test_message }}
           </div>
+          <div v-if="row.warehouses_mock" class="sub" style="margin-top: 8px">模拟仓库，不是该店铺在 Ozon 上的真实仓库。只有服务处于模拟模式时才会出现。</div>
+          <div v-else-if="row.warehouses.length && row.last_test_ok === false" class="sub" style="margin-top: 8px">
+            以下是上次成功同步的仓库<span v-if="row.warehouses_synced_at">（{{ when(row.warehouses_synced_at) }}）</span>，本次连接没有更新。
+          </div>
+          <div v-else-if="row.warehouses.length && row.warehouses_synced_at" class="sub" style="margin-top: 8px">
+            仓库同步于 {{ when(row.warehouses_synced_at) }}
+          </div>
           <div v-if="row.warehouses.length" class="chips">
-            <span v-for="warehouse in row.warehouses" :key="warehouse.warehouse_id" class="chip">
-              {{ warehouse.name }} · {{ warehouse.warehouse_id }}
+            <span v-for="warehouse in row.warehouses" :key="warehouse.warehouse_id" class="chip" :class="{ warm: row.warehouses_mock }">
+              <template v-if="row.warehouses_mock">模拟 · </template>{{ warehouse.name }} · {{ warehouse.warehouse_id }}
             </span>
           </div>
           <div v-else class="sub">仓库尚未同步。</div>
@@ -167,7 +174,8 @@ function when(value: string | null) {
         <span v-if="fields.api_key" class="error">{{ fields.api_key }}</span>
       </label>
       <div class="sub">密钥只在后端加密保存。列表和后续任务只显示「已配置 / 待配置」，编辑时不会回显原值。新增店铺不选择币种，系统也不会预填 RUB 或 CNY。</div>
-      <div class="sub">模拟模式下，API Key 填 <span class="mono">invalid</span> 会返回 Ozon 的鉴权错误，其它非空密钥可以同步仓库。</div>
+      <div class="sub">只有顶部显示「模拟模式」时，测试连接才会写入示例仓库（莫斯科一号仓等），并标明「模拟」。真实模式下失败不会把这些示例当成店铺仓库；上次真正同步成功的仓库会保留，并标出同步时间。</div>
+      <div class="sub">模拟模式下，API Key 填 <span class="mono">invalid</span> 会返回 Ozon 的鉴权错误，其它非空密钥可以同步示例仓库。</div>
     </div>
   </a-modal>
 </template>
