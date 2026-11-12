@@ -1,0 +1,14 @@
+server:
+  http_addr: 0.0.0.0:18081
+  timeout: 60s
+data:
+  database:
+    dsn: postgres://ozon:ozon@127.0.0.1:5432/ozon_workbench?sslmode=disable
+ozon:
+  base_url: https://api-seller.ozon.ru
+  mock: true
+  timeout: 45s
+  rate_limit_per_second: 10
+security:
+  # 留空时只从环境变量 OZON_CREDENTIAL_KEY 读取，仓库中不存放可用的生产密钥。
+  credential_key: ""

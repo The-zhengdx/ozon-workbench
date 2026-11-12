@@ -1,0 +1,9 @@
+bin/
+.env
+web/node_modules/
+web/dist/
+internal/server/webdist/assets/
+*.exe
+*.test
+coverage.out
+.DS_Store

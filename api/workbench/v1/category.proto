@@ -1,0 +1,154 @@
+syntax = "proto3";
+
+package workbench.v1;
+
+option go_package = "ozon-workbench/api/workbench/v1;v1";
+
+// CategoryService 类目树、属性契约与类型提示词。
+// 访问 Ozon 的接口从请求头 X-Shop-Id 读取当前店铺，不在正文里传递凭证。
+service CategoryService {
+  // GET /api/v1/categories/tree?language=
+  rpc GetTree(LanguageRequest) returns (CategoryTree);
+  // POST /api/v1/categories/sync
+  rpc SyncTree(LanguageRequest) returns (CategoryTree);
+  // GET /api/v1/categories/search?language=&q=
+  rpc SearchNodes(SearchNodesRequest) returns (SearchNodesReply);
+  // POST /api/v1/categories/import
+  rpc ImportTree(ImportTreeRequest) returns (CategoryTree);
+  // GET /api/v1/categories/attributes
+  rpc GetAttributes(AttributeKey) returns (AttributeSnapshot);
+  // POST /api/v1/categories/attributes/sync
+  rpc SyncAttributes(AttributeKey) returns (AttributeSnapshot);
+  // POST /api/v1/categories/attributes/import
+  rpc ImportAttributes(ImportAttributesRequest) returns (AttributeSnapshot);
+  // GET /api/v1/categories/attribute-values
+  rpc ListAttributeValues(AttributeValuesRequest) returns (AttributeValuesReply);
+  // POST /api/v1/categories/attribute-values/search
+  rpc SearchAttributeValues(SearchAttributeValuesRequest) returns (AttributeValuesReply);
+  // GET /api/v1/category-prompts
+  rpc GetPrompt(PromptKey) returns (CategoryPrompt);
+  // PUT /api/v1/category-prompts
+  rpc SavePrompt(SavePromptRequest) returns (CategoryPrompt);
+}
+
+message LanguageRequest {
+  string language = 1;
+}
+
+message SearchNodesRequest {
+  string language = 1;
+  string q = 2;
+}
+
+message CategoryTree {
+  string language = 1;
+  string source = 2;
+  string snapshot_at = 3;
+  int32 type_count = 4;
+  int32 node_count = 5;
+  string last_error = 6;
+  string last_error_at = 7;
+  repeated CategoryNode roots = 8;
+}
+
+message CategoryNode {
+  int64 id = 1;
+  int64 description_category_id = 2;
+  int64 type_id = 3;
+  string name = 4;
+  bool disabled = 5;
+  bool ancestor_disabled = 6;
+  bool is_leaf = 7;
+  int32 level = 8;
+  repeated string path = 9;
+  repeated CategoryNode children = 10;
+}
+
+message SearchNodesReply {
+  repeated CategoryNode nodes = 1;
+}
+
+message ImportTreeRequest {
+  string language = 1;
+  // Ozon 原始响应（含 result）或 result 数组本身。
+  bytes payload = 2;
+}
+
+message AttributeKey {
+  int64 description_category_id = 1;
+  int64 type_id = 2;
+  string language = 3;
+}
+
+message AttributeSnapshot {
+  int64 description_category_id = 1;
+  int64 type_id = 2;
+  string language = 3;
+  int32 version = 4;
+  string source = 5;
+  string synced_at = 6;
+  int32 total = 7;
+  int32 required_count = 8;
+  int32 optional_count = 9;
+  // 每一项为 Ozon 属性对象的 JSON。
+  repeated string attributes = 10;
+}
+
+message ImportAttributesRequest {
+  int64 description_category_id = 1;
+  int64 type_id = 2;
+  string language = 3;
+  bytes payload = 4;
+}
+
+message AttributeValuesRequest {
+  int64 description_category_id = 1;
+  int64 type_id = 2;
+  int64 attribute_id = 3;
+  string language = 4;
+  int32 limit = 5;
+  int64 last_value_id = 6;
+  bool refresh = 7;
+}
+
+message SearchAttributeValuesRequest {
+  int64 description_category_id = 1;
+  int64 type_id = 2;
+  int64 attribute_id = 3;
+  string language = 4;
+  int32 limit = 5;
+  string value = 6;
+  bool refresh = 7;
+}
+
+message AttributeValuesReply {
+  int64 description_category_id = 1;
+  int64 type_id = 2;
+  int64 attribute_id = 3;
+  string language = 4;
+  int32 version = 5;
+  string synced_at = 6;
+  bool has_next = 7;
+  int64 last_value_id = 8;
+  bool from_cache = 9;
+  repeated string values = 10;
+}
+
+message PromptKey {
+  int64 description_category_id = 1;
+  int64 type_id = 2;
+}
+
+message SavePromptRequest {
+  int64 description_category_id = 1;
+  int64 type_id = 2;
+  string codex_prompt = 3;
+}
+
+message CategoryPrompt {
+  int64 description_category_id = 1;
+  int64 type_id = 2;
+  string codex_prompt = 3;
+  string updated_at = 4;
+  bool saved = 5;
+}
