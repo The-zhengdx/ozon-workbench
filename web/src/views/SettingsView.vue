@@ -1,56 +1,112 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted, reactive, ref } from "vue";
 
-import { apiError } from "../api/http";
-import { fetchStorage, testStorage } from "../api/workbench";
-import { useShopStore } from "../stores/shop";
-import { useToastStore } from "../stores/toast";
+import { http, type Settings } from "../api/client";
 
-const shop = useShopStore();
-const toast = useToastStore();
-const info = ref<{ provider: string; configured: boolean; message: string } | null>(null);
-const busy = ref(false);
+const settings = ref<Settings | null>(null);
+const error = ref("");
+const message = ref("");
+const form = reactive({
+  max_active_tasks: 3,
+  prompt_fallback: "block",
+  generic_prompt: "",
+  max_infra_retries: 0,
+  codex_binary: "codex",
+  price_expression: "",
+  old_price_expression: "",
+  variables: "",
+  round_unit: "",
+  rule_name: "",
+});
 
 async function load() {
+  settings.value = (await http.get<Settings>("/api/system/settings")).data;
+  form.max_active_tasks = settings.value.max_active_tasks;
+  form.prompt_fallback = settings.value.prompt_fallback;
+  form.generic_prompt = settings.value.generic_prompt;
+  form.max_infra_retries = settings.value.max_infra_retries;
+  form.codex_binary = settings.value.codex_binary;
+}
+
+onMounted(() => load().catch((err: Error) => (error.value = err.message)));
+
+async function save() {
+  error.value = "";
+  message.value = "";
   try {
-    info.value = await fetchStorage();
-    shop.storageProvider = info.value.provider;
-    shop.storageConfigured = info.value.configured;
-  } catch (error) {
-    toast.show(apiError(error).message);
+    settings.value = (await http.patch("/api/system/settings", {
+      max_active_tasks: Number(form.max_active_tasks),
+      prompt_fallback: form.prompt_fallback,
+      generic_prompt: form.generic_prompt,
+      max_infra_retries: Number(form.max_infra_retries),
+      codex_binary: form.codex_binary,
+    })).data;
+    message.value = "已保存。正在运行的任务不会被强制停止。";
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : "保存失败";
   }
 }
 
-async function test() {
-  busy.value = true;
+async function addRule() {
+  error.value = "";
+  const variables = Object.fromEntries(
+    form.variables.split("\n").map((line) => line.trim()).filter(Boolean).map((line) => {
+      const [key, value] = line.split("=");
+      return [key.trim(), (value || "").trim()];
+    }),
+  );
   try {
-    const result = await testStorage();
-    toast.show(result.message || "测试上传成功");
-  } catch (error) {
-    toast.show(apiError(error).message);
-  } finally {
-    busy.value = false;
+    await http.post("/api/pricing-rules", {
+      name: form.rule_name,
+      enabled: true,
+      parameters_json: {
+        price_expression: form.price_expression,
+        old_price_expression: form.old_price_expression,
+        variables,
+        round_unit: form.round_unit,
+      },
+    });
+    message.value = "定价规则已保存。表达式或变量不完整时，系统不会计算价格。";
+    await load();
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : "规则保存失败";
   }
 }
-
-onMounted(load);
 </script>
 
 <template>
-  <div class="panel block stack">
-    <div class="between">
-      <h3>当前图床</h3>
-      <span class="status" :class="info?.configured ? 'ok' : 'warm'">{{ info?.configured ? info?.provider : "未配置" }}</span>
+  <p v-if="error" class="error">{{ error }}</p>
+  <p v-if="message" class="success">{{ message }}</p>
+  <div class="stack" v-if="settings">
+    <form class="panel block stack" @submit.prevent="save">
+      <p>占用 {{ settings.active_count }} / {{ settings.max_active_tasks }}，排队 {{ settings.queued_count }}</p>
+      <label class="field">最大活跃任务数<input v-model.number="form.max_active_tasks" type="number" min="1" /></label>
+      <label class="field">没有类目提示词时
+        <select v-model="form.prompt_fallback"><option value="block">阻断</option><option value="generic">使用通用提示词</option></select>
+      </label>
+      <label class="field">通用提示词<textarea v-model="form.generic_prompt" class="prompt" rows="5" placeholder="留空。不会预置类目规则。"></textarea></label>
+      <label class="field">Codex 可执行文件<input v-model="form.codex_binary" /></label>
+      <label class="field">基础设施失败后的额外重试次数<input v-model.number="form.max_infra_retries" type="number" min="0" /></label>
+      <button class="primary" type="submit">保存系统设置</button>
+    </form>
+    <div class="panel block">
+      <h3>OSS</h3>
+      <p>{{ settings.oss_provider }} · {{ settings.oss_configured ? "已配置" : "未配置" }}</p>
+      <p class="muted">{{ settings.oss_message }}</p>
+      <p class="muted">密钥放在环境变量 OSS_ACCESS_KEY、OSS_SECRET_KEY 或 YANDEX_DISK_TOKEN，不写入页面和日志。</p>
     </div>
-    <p>{{ info?.message || "正在读取配置…" }}</p>
-    <p class="sub">默认 provider 为空。令牌只放在环境变量 YANDEX_DISK_TOKEN，不要写进仓库。改完配置后需要重启工作台进程。</p>
-    <div class="miniActions">
-      <button class="primary" type="button" :disabled="busy || !info?.configured" @click="test">测试上传</button>
-    </div>
-    <pre>storage:
-  provider: ""          # 以后改成 yandex
-  yandex:
-    token: ""           # 留空，用 YANDEX_DISK_TOKEN
-    root: ozon-workbench</pre>
+    <form class="panel block stack" @submit.prevent="addRule">
+      <h3>定价公式</h3>
+      <p class="muted">可用变量来自下面的清单，另外可以引用 cost 和 price。没有表达式时售价留空。</p>
+      <label class="field">名称<input v-model="form.rule_name" required /></label>
+      <label class="field">售价表达式<input v-model="form.price_expression" placeholder="cost * rate + fee" /></label>
+      <label class="field">划线价表达式<input v-model="form.old_price_expression" placeholder="price * factor" /></label>
+      <label class="field">变量，一行一个 key=value<textarea v-model="form.variables" class="prompt" rows="4"></textarea></label>
+      <label class="field">取整单位<input v-model="form.round_unit" placeholder="0.01" /></label>
+      <button class="primary" type="submit">保存规则</button>
+      <ul>
+        <li v-for="rule in settings.pricing_rules" :key="rule.id">{{ rule.name }} · {{ rule.enabled ? "启用" : "停用" }}</li>
+      </ul>
+    </form>
   </div>
 </template>

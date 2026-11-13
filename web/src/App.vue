@@ -4,10 +4,8 @@ import { computed, onMounted } from "vue";
 import { useRoute } from "vue-router";
 
 import { useShopStore } from "./stores/shop";
-import { useToastStore } from "./stores/toast";
 
 const shop = useShopStore();
-const toast = useToastStore();
 const route = useRoute();
 
 const themeConfig = {
@@ -27,21 +25,29 @@ const themeConfig = {
 };
 
 const nav = [
-  { to: "/shops", icon: "▦", label: "店铺管理", short: "店铺" },
+  { to: "/", icon: "◈", label: "概览", short: "概览" },
+  { to: "/tasks", icon: "≋", label: "商品加工", short: "加工" },
+  { to: "/products", icon: "▤", label: "商品管理", short: "商品" },
   { to: "/categories", icon: "⌘", label: "类目与提示词", short: "类目" },
-  { to: "/tasks", icon: "≋", label: "素材加工工作台", short: "素材" },
-  { to: "/listings", icon: "▤", label: "上架商品管理", short: "上架" },
+  { to: "/imports", icon: "⇪", label: "刊登记录", short: "刊登" },
+  { to: "/shops", icon: "▦", label: "店铺管理", short: "店铺" },
+  { to: "/settings", icon: "⚙", label: "系统设置", short: "设置" },
 ];
 
 const title = computed(() => (typeof route.meta.title === "string" ? route.meta.title : ""));
 const desc = computed(() => (typeof route.meta.desc === "string" ? route.meta.desc : ""));
 
 onMounted(() => {
-  void shop.load();
+  void shop.load().catch(() => undefined);
 });
 
-function onSwitch(value: number) {
-  void shop.select(value);
+function onSwitch(value: unknown) {
+  shop.select(Number(value));
+}
+
+function isActive(to: string) {
+  if (to === "/") return route.path === "/";
+  return route.path === to || route.path.startsWith(`${to}/`);
 }
 </script>
 
@@ -53,20 +59,17 @@ function onSwitch(value: number) {
           <div class="mark">OZ</div>
           <div>
             <b>Ozon 工作台</b>
-            <small>卖家运营中心</small>
+            <small>本地加工与刊登</small>
           </div>
         </div>
         <nav class="nav" aria-label="主导航">
-          <router-link v-for="item in nav" :key="item.to" :to="item.to" active-class="active">
+          <router-link v-for="item in nav" :key="item.to" :to="item.to" :class="{ active: isActive(item.to) }" active-class="">
             <span class="ico">{{ item.icon }}</span>
             <span class="deskName">{{ item.label }}</span>
             <span class="mobileName">{{ item.short }}</span>
           </router-link>
         </nav>
-        <div class="railfoot">
-          <router-link to="/settings">图床设置</router-link>
-          <div><span class="dot"></span>本地工作台</div>
-        </div>
+        <div class="railfoot"><span class="dot"></span>单机 PostgreSQL</div>
       </aside>
       <main class="min-w-0">
         <header class="top">
@@ -75,24 +78,16 @@ function onSwitch(value: number) {
             <a-select
               id="shopSelect"
               :value="shop.currentShopId ?? undefined"
-              style="min-width: 180px; max-width: 260px"
+              style="min-width: 180px; max-width: 280px"
               placeholder="请先新增店铺"
-              :disabled="!shop.activeShops.length"
+              :disabled="!shop.shops.length"
               @change="onSwitch"
             >
-              <a-select-option v-for="item in shop.activeShops" :key="item.id" :value="item.id">
-                {{ item.name }}{{ item.currency_code ? ` · ${item.currency_code}` : "" }}
+              <a-select-option v-for="item in shop.shops" :key="item.id" :value="item.id">
+                {{ item.name }} · {{ item.currency_code }}{{ item.enable ? "" : "（停用）" }}
               </a-select-option>
             </a-select>
-            <span v-if="shop.current && !shop.current.currency_code" class="status warm currency-pill">币种未核实</span>
-          </div>
-          <div class="demo">
-            <span v-if="shop.mock" class="status warm">模拟模式 · 仓库是内置示例</span>
-            <span v-else class="status ready">真实 Ozon · {{ shop.proxyLabel }}</span>
-            <span class="status" :class="shop.codexMock ? 'warm' : 'ready'">{{ shop.codexMock ? "Codex 模拟" : "本地 Codex" }}</span>
-            <router-link to="/settings" class="status" :class="shop.storageConfigured ? 'ok' : 'warm'">
-              {{ shop.storageConfigured ? `图床 ${shop.storageProvider}` : "图床未配置" }}
-            </router-link>
+            <span v-if="shop.current && !shop.current.enable" class="status bad">停用店铺只能查看历史</span>
           </div>
         </header>
         <section class="content">
@@ -106,6 +101,5 @@ function onSwitch(value: number) {
         </section>
       </main>
     </div>
-    <div v-if="toast.text" class="toast" role="status">{{ toast.text }}</div>
   </a-config-provider>
 </template>
