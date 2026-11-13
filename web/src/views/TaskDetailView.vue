@@ -26,29 +26,52 @@ onMounted(() => {
 });
 onUnmounted(() => window.clearInterval(timer));
 
+async function runAction(work: () => Promise<void>) {
+  error.value = "";
+  try {
+    await work();
+    await load();
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : "操作失败";
+  }
+}
+
 async function send() {
-  await http.post(`/api/processing-tasks/${route.params.id}/messages`, messageBody(content.value));
-  content.value = "";
-  await load();
+  if (!content.value.trim()) {
+    error.value = "补充内容不能为空";
+    return;
+  }
+  const body = content.value;
+  await runAction(async () => {
+    await http.post(`/api/processing-tasks/${route.params.id}/messages`, messageBody(body));
+    content.value = "";
+  });
 }
 
 async function review(kind: string, decision: string) {
-  await http.post(`/api/processing-tasks/${route.params.id}/review`, reviewBody(kind, decision));
-  await load();
+  await runAction(async () => {
+    await http.post(`/api/processing-tasks/${route.params.id}/review`, reviewBody(kind, decision));
+  });
 }
 
 async function cancel() {
-  await http.post(`/api/processing-tasks/${route.params.id}/cancel`);
-  await load();
+  await runAction(async () => {
+    await http.post(`/api/processing-tasks/${route.params.id}/cancel`);
+  });
 }
 
 async function retry() {
-  await http.post(`/api/processing-tasks/${route.params.id}/retry`);
-  await load();
+  await runAction(async () => {
+    await http.post(`/api/processing-tasks/${route.params.id}/retry`);
+  });
 }
 </script>
 
 <template>
+  <nav class="crumbs" aria-label="面包屑">
+    <router-link to="/tasks">商品加工</router-link>
+    <span>任务 {{ route.params.id }}</span>
+  </nav>
   <p v-if="error" class="error">{{ error }}</p>
   <div v-if="task" class="stack">
     <div class="panel block between">
@@ -59,8 +82,9 @@ async function retry() {
         <p v-if="task.last_error" class="error">{{ task.last_error }}</p>
       </div>
       <div class="miniActions">
-        <button class="ghost" type="button" @click="cancel">取消</button>
-        <button class="ghost" type="button" @click="retry">重新排队</button>
+        <router-link class="ghost" to="/tasks">返回任务列表</router-link>
+        <button class="ghost" type="button" :disabled="task.status === 'failed' || task.status === 'completed' || task.status === 'cancelled'" @click="cancel">取消</button>
+        <button class="ghost" type="button" :disabled="task.status !== 'failed' && task.status !== 'cancelled'" @click="retry">重新排队</button>
       </div>
     </div>
     <div class="panel block">
@@ -73,7 +97,7 @@ async function retry() {
     <form class="panel block stack" @submit.prevent="send">
       <textarea v-model="content" class="prompt" rows="4" placeholder="补充要求"></textarea>
       <div class="miniActions">
-        <button class="primary" type="submit">保存到队列</button>
+        <button class="primary" type="submit" :disabled="!content.trim()">保存到队列</button>
         <button class="ghost" type="button" @click="review('copy', 'approve')">通过文案</button>
         <button class="ghost" type="button" @click="review('visual_plan', 'approve')">通过视觉方案</button>
         <button class="ghost" type="button" @click="review('visual_result', 'approve')">通过视觉成品</button>

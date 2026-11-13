@@ -21,9 +21,9 @@ func batCommandLine(script string, args []string) (string, error) {
 	if script == "" || strings.ContainsAny(script, "\"\r\n\x00") || strings.HasSuffix(script, `\`) {
 		return "", fmt.Errorf("Codex CLI 路径无效")
 	}
-	for _, arg := range args {
+	for i, arg := range args {
 		if strings.ContainsAny(arg, "\r\n\x00") {
-			return "", fmt.Errorf("Codex 参数无效")
+			return "", fmt.Errorf("Codex 参数无效：第 %d 个参数含有换行或空字符，不能交给 cmd.exe", i+1)
 		}
 	}
 	var b strings.Builder

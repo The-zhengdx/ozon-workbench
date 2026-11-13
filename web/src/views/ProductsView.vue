@@ -17,9 +17,14 @@ const message = ref("");
 
 async function load() {
   if (!shop.currentShopId) return;
-  rows.value = asList((await http.get<Product[] | null>("/api/products", {
-    params: { shop_id: shop.currentShopId, publish_status: status.value, offer_id: offer.value },
-  })).data);
+  error.value = "";
+  try {
+    rows.value = asList((await http.get<Product[] | null>("/api/products", {
+      params: { shop_id: shop.currentShopId, publish_status: status.value, offer_id: offer.value },
+    })).data);
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : "商品列表加载失败";
+  }
 }
 
 onMounted(() => load().catch((err: Error) => (error.value = err.message)));
