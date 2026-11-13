@@ -160,7 +160,7 @@ func (t *pgTx) ListProducts(ctx context.Context, f domain.ProductFilter) ([]doma
 		return nil, err
 	}
 	defer rows.Close()
-	var out []domain.Product
+	out := make([]domain.Product, 0)
 	for rows.Next() {
 		p, err := scanProduct(rows)
 		if err != nil {
@@ -206,7 +206,7 @@ func (t *pgTx) ListDeliveries(ctx context.Context, taskID int64) ([]domain.Deliv
 		return nil, err
 	}
 	defer rows.Close()
-	var out []domain.Delivery
+	out := make([]domain.Delivery, 0)
 	for rows.Next() {
 		var row domain.Delivery
 		if err := rows.Scan(&row.TaskID, &row.SKURef, &row.ProductID, &row.DeliveredAt); err != nil {
@@ -241,7 +241,7 @@ func (t *pgTx) ListPricingRules(ctx context.Context) ([]domain.PricingRule, erro
 		return nil, err
 	}
 	defer rows.Close()
-	var out []domain.PricingRule
+	out := make([]domain.PricingRule, 0)
 	for rows.Next() {
 		rule, err := scanPrice(rows)
 		if err != nil {
@@ -331,7 +331,7 @@ func (t *pgTx) ListBatches(ctx context.Context, shopID int64) ([]domain.ImportBa
 		return nil, err
 	}
 	defer rows.Close()
-	var out []domain.ImportBatch
+	out := make([]domain.ImportBatch, 0)
 	for rows.Next() {
 		batch, err := scanBatch(rows)
 		if err != nil {
@@ -376,7 +376,7 @@ func (t *pgTx) ListBatchItems(ctx context.Context, batchID int64) ([]domain.Impo
 		return nil, err
 	}
 	defer rows.Close()
-	var out []domain.ImportBatchItem
+	out := make([]domain.ImportBatchItem, 0)
 	for rows.Next() {
 		var item domain.ImportBatchItem
 		var req, errJSON []byte

@@ -3,6 +3,7 @@ import { theme } from "ant-design-vue";
 import { computed, onMounted } from "vue";
 import { useRoute } from "vue-router";
 
+import RouteFrame from "./components/RouteFrame.vue";
 import { useShopStore } from "./stores/shop";
 
 const shop = useShopStore();
@@ -80,10 +81,10 @@ function isActive(to: string) {
               :value="shop.currentShopId ?? undefined"
               style="min-width: 180px; max-width: 280px"
               placeholder="请先新增店铺"
-              :disabled="!shop.shops.length"
+              :disabled="!shop.list.length"
               @change="onSwitch"
             >
-              <a-select-option v-for="item in shop.shops" :key="item.id" :value="item.id">
+              <a-select-option v-for="item in shop.list" :key="item.id" :value="item.id">
                 {{ item.name }} · {{ item.currency_code }}{{ item.enable ? "" : "（停用）" }}
               </a-select-option>
             </a-select>
@@ -97,7 +98,9 @@ function isActive(to: string) {
               <p>{{ desc }}</p>
             </div>
           </div>
-          <router-view />
+          <RouteFrame>
+            <router-view />
+          </RouteFrame>
         </section>
       </main>
     </div>

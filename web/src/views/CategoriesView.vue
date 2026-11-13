@@ -2,6 +2,7 @@
 import { computed, ref } from "vue";
 
 import { http } from "../api/client";
+import { asList } from "../api/lists";
 import { useShopStore } from "../stores/shop";
 
 type Hit = { description_category_id: number; category_name: string; type_id: number; type_name: string };
@@ -11,8 +12,10 @@ const shop = useShopStore();
 const language = ref("ZH");
 const query = ref("");
 const hits = ref<Hit[]>([]);
+const results = computed(() => asList(hits.value));
 const selected = ref<Hit | null>(null);
 const attrs = ref<Attr[]>([]);
+const attributes = computed(() => asList(attrs.value));
 const prompt = ref("");
 const version = ref(0);
 const enabled = ref(true);
@@ -37,15 +40,15 @@ async function sync() {
 }
 
 async function search() {
-  const { data } = await http.get<Hit[]>("/api/categories/tree", { params: { language: language.value, q: query.value } });
-  hits.value = data;
+  const { data } = await http.get<Hit[] | null>("/api/categories/tree", { params: { language: language.value, q: query.value } });
+  hits.value = asList(data);
 }
 
 async function open(hit: Hit) {
   selected.value = hit;
   error.value = "";
   const params = { shop_id: shopId.value, language: "RU" };
-  attrs.value = (await http.get<Attr[]>(`/api/categories/${hit.description_category_id}/types/${hit.type_id}/attributes`, { params })).data;
+  attrs.value = asList((await http.get<Attr[] | null>(`/api/categories/${hit.description_category_id}/types/${hit.type_id}/attributes`, { params })).data);
   try {
     const rule = (await http.get(`/api/category-rules/${hit.description_category_id}/${hit.type_id}`)).data;
     prompt.value = rule.prompt;
@@ -89,18 +92,18 @@ async function values(attr: Attr) {
   </div>
   <div class="catalogLayout">
     <div class="panel block">
-      <button v-for="hit in hits" :key="`${hit.description_category_id}-${hit.type_id}`" class="ghost" :class="{ on: selected?.type_id === hit.type_id }" type="button" @click="open(hit)">
+      <button v-for="hit in results" :key="`${hit.description_category_id}-${hit.type_id}`" class="ghost" :class="{ on: selected?.type_id === hit.type_id }" type="button" @click="open(hit)">
         {{ hit.category_name }} / {{ hit.type_name }}
         <small class="mono">{{ hit.description_category_id }} / {{ hit.type_id }}</small>
       </button>
-      <p v-if="!hits.length" class="empty">同步或搜索后显示可售类型</p>
+      <p v-if="!results.length" class="empty">同步或搜索后显示可售类型</p>
     </div>
     <div class="stack" v-if="selected">
       <div class="panel tablewrap">
         <table>
           <thead><tr><th>属性</th><th>必填</th><th>字典</th><th></th></tr></thead>
           <tbody>
-            <tr v-for="attr in attrs" :key="attr.id">
+            <tr v-for="attr in attributes" :key="attr.id">
               <td>{{ attr.name }} <span class="mono">{{ attr.id }}</span></td>
               <td>{{ attr.is_required ? "是" : "否" }}</td>
               <td>{{ attr.dictionary_id || "—" }}</td>

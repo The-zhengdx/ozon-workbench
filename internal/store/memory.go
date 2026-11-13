@@ -258,7 +258,7 @@ func (t *memTx) PutAttrCache(_ context.Context, shopID, categoryID, typeID int64
 }
 
 func (t *memTx) ListDict(_ context.Context, q domain.DictQuery) ([]domain.DictValue, error) {
-	var out []domain.DictValue
+	out := make([]domain.DictValue, 0)
 	needle := strings.ToLower(strings.TrimSpace(q.Keyword))
 	for _, row := range t.s.Dicts {
 		if row.ShopID != q.ShopID || row.DescriptionCategoryID != q.CategoryID || row.TypeID != q.TypeID || row.AttributeID != q.AttributeID || row.Language != q.Language {
@@ -335,7 +335,7 @@ func (t *memTx) GetTask(_ context.Context, id int64) (domain.Task, error) {
 }
 
 func (t *memTx) ListTasks(_ context.Context, f domain.TaskFilter) ([]domain.Task, error) {
-	var out []domain.Task
+	out := make([]domain.Task, 0)
 	for _, task := range t.s.Tasks {
 		if f.ShopID != 0 && task.ShopID != f.ShopID {
 			continue
@@ -437,7 +437,7 @@ func (t *memTx) UpdateTurn(_ context.Context, turn domain.Turn) error {
 }
 
 func (t *memTx) ListTurns(_ context.Context, taskID int64) ([]domain.Turn, error) {
-	var out []domain.Turn
+	out := make([]domain.Turn, 0)
 	for _, turn := range t.s.Turns {
 		if turn.TaskID == taskID {
 			out = append(out, turn)
@@ -472,7 +472,7 @@ func (t *memTx) UpdateMessage(_ context.Context, msg domain.Message) error {
 }
 
 func (t *memTx) ListMessages(_ context.Context, taskID int64) ([]domain.Message, error) {
-	var out []domain.Message
+	out := make([]domain.Message, 0)
 	for _, msg := range t.s.Messages {
 		if msg.TaskID == taskID {
 			out = append(out, msg)
@@ -483,7 +483,7 @@ func (t *memTx) ListMessages(_ context.Context, taskID int64) ([]domain.Message,
 }
 
 func (t *memTx) PendingMessages(_ context.Context, taskID int64) ([]domain.Message, error) {
-	var out []domain.Message
+	out := make([]domain.Message, 0)
 	for _, msg := range t.s.Messages {
 		if msg.TaskID != taskID || msg.DeliveryStatus != domain.DeliveryPending {
 			continue
@@ -515,7 +515,7 @@ func (t *memTx) UpsertAsset(_ context.Context, asset domain.Asset) (domain.Asset
 }
 
 func (t *memTx) ListAssets(_ context.Context, taskID int64) ([]domain.Asset, error) {
-	var out []domain.Asset
+	out := make([]domain.Asset, 0)
 	for _, asset := range t.s.Assets {
 		if asset.TaskID == taskID {
 			out = append(out, asset)
@@ -576,7 +576,7 @@ func (t *memTx) FindProductByOffer(_ context.Context, shopID int64, offerID stri
 }
 
 func (t *memTx) ListProducts(_ context.Context, f domain.ProductFilter) ([]domain.Product, error) {
-	var out []domain.Product
+	out := make([]domain.Product, 0)
 	for _, product := range t.s.Products {
 		if f.ShopID != 0 && product.ShopID != f.ShopID {
 			continue
@@ -648,7 +648,7 @@ func (t *memTx) CreateDelivery(_ context.Context, row domain.Delivery) error {
 }
 
 func (t *memTx) ListDeliveries(_ context.Context, taskID int64) ([]domain.Delivery, error) {
-	var out []domain.Delivery
+	out := make([]domain.Delivery, 0)
 	for _, row := range t.s.Deliveries {
 		if row.TaskID == taskID {
 			out = append(out, row)
@@ -713,7 +713,7 @@ func (t *memTx) GetBatch(_ context.Context, id int64) (domain.ImportBatch, error
 }
 
 func (t *memTx) ListBatches(_ context.Context, shopID int64) ([]domain.ImportBatch, error) {
-	var out []domain.ImportBatch
+	out := make([]domain.ImportBatch, 0)
 	for _, batch := range t.s.Batches {
 		if shopID == 0 || batch.ShopID == shopID {
 			out = append(out, batch)
@@ -744,7 +744,7 @@ func (t *memTx) UpdateBatchItem(_ context.Context, item domain.ImportBatchItem) 
 }
 
 func (t *memTx) ListBatchItems(_ context.Context, batchID int64) ([]domain.ImportBatchItem, error) {
-	var out []domain.ImportBatchItem
+	out := make([]domain.ImportBatchItem, 0)
 	for _, item := range t.s.Items {
 		if item.BatchID == batchID {
 			out = append(out, item)

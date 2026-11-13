@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"bytes"
 	"context"
 	"embed"
 	"encoding/json"
@@ -173,7 +174,11 @@ func (s *Server) attributes(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write(raw)
+	body := bytes.TrimSpace(raw)
+	if len(body) == 0 || bytes.Equal(body, []byte("null")) {
+		body = []byte("[]")
+	}
+	_, _ = w.Write(body)
 }
 
 func (s *Server) values(w http.ResponseWriter, r *http.Request) {
@@ -557,7 +562,7 @@ func writeErr(w http.ResponseWriter, err error) {
 func writeJSON(w http.ResponseWriter, status int, body any) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(body)
+	_ = json.NewEncoder(w).Encode(normalizeEmptyLists(body))
 }
 
 func pathID(r *http.Request, name string) int64 {

@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 
 import { http, type Settings } from "../api/client";
+import { asList } from "../api/lists";
 
 const settings = ref<Settings | null>(null);
+const rules = computed(() => asList(settings.value?.pricing_rules));
 const error = ref("");
 const message = ref("");
 const form = reactive({
@@ -19,8 +21,12 @@ const form = reactive({
   rule_name: "",
 });
 
+function normalize(data: Settings): Settings {
+  return { ...data, pricing_rules: asList(data?.pricing_rules) };
+}
+
 async function load() {
-  settings.value = (await http.get<Settings>("/api/system/settings")).data;
+  settings.value = normalize((await http.get<Settings>("/api/system/settings")).data);
   form.max_active_tasks = settings.value.max_active_tasks;
   form.prompt_fallback = settings.value.prompt_fallback;
   form.generic_prompt = settings.value.generic_prompt;
@@ -34,13 +40,13 @@ async function save() {
   error.value = "";
   message.value = "";
   try {
-    settings.value = (await http.patch("/api/system/settings", {
+    settings.value = normalize((await http.patch("/api/system/settings", {
       max_active_tasks: Number(form.max_active_tasks),
       prompt_fallback: form.prompt_fallback,
       generic_prompt: form.generic_prompt,
       max_infra_retries: Number(form.max_infra_retries),
       codex_binary: form.codex_binary,
-    })).data;
+    })).data);
     message.value = "已保存。正在运行的任务不会被强制停止。";
   } catch (err) {
     error.value = err instanceof Error ? err.message : "保存失败";
@@ -105,7 +111,7 @@ async function addRule() {
       <label class="field">取整单位<input v-model="form.round_unit" placeholder="0.01" /></label>
       <button class="primary" type="submit">保存规则</button>
       <ul>
-        <li v-for="rule in settings.pricing_rules" :key="rule.id">{{ rule.name }} · {{ rule.enabled ? "启用" : "停用" }}</li>
+        <li v-for="rule in rules" :key="rule.id">{{ rule.name }} · {{ rule.enabled ? "启用" : "停用" }}</li>
       </ul>
     </form>
   </div>

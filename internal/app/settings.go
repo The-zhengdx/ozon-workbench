@@ -59,6 +59,9 @@ func (e *Engine) GetSettings(ctx context.Context) (Settings, error) {
 	if err != nil {
 		return out, err
 	}
+	if out.PricingRules == nil {
+		out.PricingRules = []domain.PricingRule{}
+	}
 	uploader := e.uploader()
 	out.OSSProvider = uploader.Name()
 	out.OSSConfigured = uploader.Configured()

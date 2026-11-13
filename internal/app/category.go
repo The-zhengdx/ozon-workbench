@@ -78,7 +78,7 @@ func (e *Engine) SearchTree(ctx context.Context, language, query string) ([]Tree
 		return nil, err
 	}
 	query = strings.ToLower(strings.TrimSpace(query))
-	var hits []TreeHit
+	hits := make([]TreeHit, 0)
 	var walk func(any, TreeHit)
 	walk = func(v any, parent TreeHit) {
 		switch n := v.(type) {
@@ -146,6 +146,9 @@ func (e *Engine) Attributes(ctx context.Context, shopID, categoryID, typeID int6
 		attrs, err := e.ozon(shop).Attributes(ctx, categoryID, typeID, language)
 		if err != nil {
 			return fail(502, "OZON_UPSTREAM_UNAVAILABLE", "属性查询失败", err.Error())
+		}
+		if attrs == nil {
+			attrs = []ozonapi.Attribute{}
 		}
 		raw, err := json.Marshal(attrs)
 		if err != nil {

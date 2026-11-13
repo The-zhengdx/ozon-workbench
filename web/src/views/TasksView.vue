@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 
 import { http, type Task } from "../api/client";
+import { asList } from "../api/lists";
 import { useShopStore } from "../stores/shop";
 
 const shop = useShopStore();
 const router = useRouter();
 const tasks = ref<Task[]>([]);
+const rows = computed(() => asList(tasks.value));
 const error = ref("");
 const form = reactive({
   description_category_id: "",
@@ -20,7 +22,7 @@ const form = reactive({
 });
 
 async function load() {
-  tasks.value = (await http.get<Task[]>("/api/processing-tasks", { params: { shop_id: shop.currentShopId || undefined } })).data;
+  tasks.value = asList((await http.get<Task[] | null>("/api/processing-tasks", { params: { shop_id: shop.currentShopId || undefined } })).data);
 }
 
 onMounted(() => load().catch((err: Error) => (error.value = err.message)));
@@ -69,7 +71,7 @@ async function create() {
     <table>
       <thead><tr><th>ID</th><th>主 SKU</th><th>类目</th><th>状态</th><th>名额</th><th></th></tr></thead>
       <tbody>
-        <tr v-for="task in tasks" :key="task.id">
+        <tr v-for="task in rows" :key="task.id">
           <td class="mono">{{ task.id }}</td>
           <td>{{ task.base_sku }}</td>
           <td class="mono">{{ task.description_category_id }}/{{ task.type_id }}</td>
