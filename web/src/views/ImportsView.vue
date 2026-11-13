@@ -18,8 +18,13 @@ async function load() {
 }
 
 async function open(id: number) {
-  current.value = id;
-  items.value = asList((await http.get(`/api/import-batches/${id}/items`)).data);
+  error.value = "";
+  try {
+    current.value = id;
+    items.value = asList((await http.get(`/api/import-batches/${id}/items`)).data);
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : "批次明细加载失败";
+  }
 }
 
 async function refresh(id: number) {

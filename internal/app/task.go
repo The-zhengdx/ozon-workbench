@@ -319,7 +319,7 @@ func (e *Engine) CancelTask(ctx context.Context, taskID int64) error {
 		if err != nil {
 			return err
 		}
-		if task.Status == domain.StatusCompleted || task.Status == domain.StatusCancelled {
+		if task.Status == domain.StatusCompleted || task.Status == domain.StatusCancelled || task.Status == domain.StatusFailed {
 			return nil
 		}
 		task.CancelRequested = true

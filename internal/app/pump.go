@@ -143,7 +143,7 @@ func (e *Engine) step(ctx context.Context) (bool, error) {
 	}
 	sort.Slice(tasks, func(i, j int) bool { return tasks[i].ID < tasks[j].ID })
 	for _, task := range tasks {
-		if task.CancelRequested && task.Status != domain.StatusCancelled && task.Status != domain.StatusRunning {
+		if task.CancelRequested && task.Status != domain.StatusCancelled && task.Status != domain.StatusRunning && task.Status != domain.StatusFailed && task.Status != domain.StatusCompleted {
 			if err := e.markCancelled(ctx, task.ID); err != nil {
 				return false, err
 			}
@@ -327,37 +327,60 @@ func (e *Engine) finishTurn(ctx context.Context, taskID, turnID int64, included 
 		if result.SessionID != "" {
 			task.CodexSessionID = result.SessionID
 		}
-		if task.CancelRequested {
-			current.RunStatus = domain.TurnFailed
-			current.ErrorMessage = "已取消"
-			_ = tx.UpdateTurn(ctx, current)
-			return e.cancelLocked(ctx, tx, task)
-		}
 		reply, reason := parseTurn(result, runErr)
 		if reason != "" {
+			detail := strings.TrimSpace(codexcli.FormatFailure(result, nil))
+			if strings.TrimSpace(result.Stderr) == "" {
+				detail = strings.TrimSpace(reason + "\n" + detail)
+			} else if !strings.Contains(detail, "Codex CLI 执行失败") {
+				detail = "Codex CLI 执行失败\n" + detail
+			}
 			current.RunStatus = domain.TurnFailed
 			current.ExitCode = &result.ExitCode
-			current.ErrorMessage = reason
+			current.ErrorMessage = detail
 			if err := tx.UpdateTurn(ctx, current); err != nil {
 				return err
 			}
 			if err := e.markIncluded(ctx, tx, taskID, included, domain.DeliveryUncertain, now); err != nil {
 				return err
 			}
+			if _, err := tx.CreateMessage(ctx, domain.Message{
+				TaskID: taskID, Role: domain.RoleSystem, Kind: domain.KindSystemNote,
+				Content: detail, DeliveryStatus: domain.DeliveryNotApplicable, CreatedAt: now,
+			}); err != nil {
+				return err
+			}
+			config := codexcli.ConfigFailure(result, runErr)
+			if task.CancelRequested && !config {
+				task.LastError = detail
+				task.UpdatedAt = now
+				return e.cancelLocked(ctx, tx, task)
+			}
 			failed, err := e.failureCount(ctx, tx, taskID)
 			if err != nil {
 				return err
 			}
 			limit := configInt(ctx, tx, "max_infra_retries", 0)
-			task.LastError = reason
+			task.LastError = detail
 			task.UpdatedAt = now
-			if failed > limit {
+			if config || failed > limit {
 				task.Status = domain.StatusFailed
 				task.FinishedAt = &now
+				if config {
+					task.CancelRequested = false
+				}
 			} else {
 				task.Status = domain.StatusRunning
 			}
 			return tx.UpdateTask(ctx, task)
+		}
+		if task.CancelRequested {
+			current.RunStatus = domain.TurnFailed
+			current.ErrorMessage = "已取消"
+			if err := tx.UpdateTurn(ctx, current); err != nil {
+				return err
+			}
+			return e.cancelLocked(ctx, tx, task)
 		}
 		raw, _ := json.Marshal(reply)
 		current.RunStatus = domain.TurnSucceeded
@@ -579,6 +602,9 @@ func (e *Engine) markCancelled(ctx context.Context, id int64) error {
 		task, err := tx.GetTask(ctx, id)
 		if err != nil {
 			return err
+		}
+		if task.Status == domain.StatusFailed || task.Status == domain.StatusCompleted || task.Status == domain.StatusCancelled {
+			return nil
 		}
 		return e.cancelLocked(ctx, tx, task)
 	})

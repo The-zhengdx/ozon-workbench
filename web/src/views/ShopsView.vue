@@ -27,8 +27,13 @@ async function create() {
 }
 
 async function toggle(item: Shop) {
-  await http.patch(`/api/shops/${item.id}`, shopEnableBody(!item.enable));
-  await shop.load();
+  error.value = "";
+  try {
+    await http.patch(`/api/shops/${item.id}`, shopEnableBody(!item.enable));
+    await shop.load();
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : "更新失败";
+  }
 }
 </script>
 

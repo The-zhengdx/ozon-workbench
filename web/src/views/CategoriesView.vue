@@ -28,7 +28,11 @@ async function open(node: CategoryNode) {
   selected.value = node;
   error.value = "";
   message.value = "";
-  await Promise.all([loadAttributes(), loadPrompt()]);
+  try {
+    await Promise.all([loadAttributes(), loadPrompt()]);
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : "类目加载失败";
+  }
 }
 
 async function loadAttributes() {
@@ -77,9 +81,14 @@ async function syncAttributes() {
 
 async function save() {
   if (!selected.value?.description_category_id || !selected.value.type_id) return;
-  const rule = (await http.put(`/api/category-rules/${selected.value.description_category_id}/${selected.value.type_id}`, promptBody(prompt.value, enabled.value))).data;
-  version.value = rule.version;
-  message.value = `已保存，版本 ${rule.version}`;
+  error.value = "";
+  try {
+    const rule = (await http.put(`/api/category-rules/${selected.value.description_category_id}/${selected.value.type_id}`, promptBody(prompt.value, enabled.value))).data;
+    version.value = rule.version;
+    message.value = `已保存，版本 ${rule.version}`;
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : "提示词保存失败";
+  }
 }
 
 async function copyJSON() {
@@ -94,11 +103,16 @@ async function copyJSON() {
 async function values(attr: Attr) {
   if (!selected.value?.description_category_id || !selected.value.type_id) return;
   const keyword = window.prompt(`查询属性 ${attr.name} 的字典值`) ?? "";
-  const { data } = await http.get(
-    `/api/categories/${selected.value.description_category_id}/types/${selected.value.type_id}/attributes/${attr.id}/values`,
-    { params: { shop_id: shopId.value, language: language.value, keyword, page: 1, page_size: 50 } },
-  );
-  window.alert(JSON.stringify(data, null, 2));
+  error.value = "";
+  try {
+    const { data } = await http.get(
+      `/api/categories/${selected.value.description_category_id}/types/${selected.value.type_id}/attributes/${attr.id}/values`,
+      { params: { shop_id: shopId.value, language: language.value, keyword, page: 1, page_size: 50 } },
+    );
+    window.alert(JSON.stringify(data, null, 2));
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : "字典查询失败";
+  }
 }
 
 watch(language, () => {

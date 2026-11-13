@@ -14,7 +14,8 @@ watch(
   },
 );
 
-onErrorCaptured((err) => {
+onErrorCaptured((err, _instance, info) => {
+  if (String(info ?? "").includes("event handler")) return false;
   failed.value = true;
   detail.value = err instanceof Error ? err.message : "页面渲染失败";
   return false;

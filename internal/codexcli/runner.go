@@ -30,6 +30,8 @@ type ExecResult struct {
 	Output    []byte
 	Stdout    string
 	Stderr    string
+	Args      []string
+	Started   bool
 }
 
 type Runner interface {
@@ -39,14 +41,28 @@ type Runner interface {
 // CLI 通过 argv 调用本机 Codex，不拼接 shell 字符串。
 type CLI struct{}
 
+// BuildArgs matches Codex CLI 0.167.2.
+// `codex exec` accepts --sandbox and -C/--cd. `codex exec resume` does not.
+// The prompt is always "-" so the text, including newlines and Chinese, is read from stdin.
 func BuildArgs(req ExecRequest) []string {
+	resume := strings.TrimSpace(req.SessionID) != ""
 	args := []string{"exec"}
-	if strings.TrimSpace(req.SessionID) != "" {
-		args = append(args, "resume", req.SessionID)
+	if resume {
+		args = append(args, "resume")
 	}
-	args = append(args, "--json", "--skip-git-repo-check", "--sandbox", "workspace-write")
+	args = append(args, "--json", "--skip-git-repo-check")
+	if !resume {
+		args = append(args, "--sandbox", "workspace-write")
+	}
 	args = append(args, req.ExtraArgs...)
-	args = append(args, "--output-schema", req.SchemaPath, "-o", req.OutputPath, "-C", req.WorkDir, req.Prompt)
+	args = append(args, "--output-schema", req.SchemaPath, "-o", req.OutputPath)
+	if !resume {
+		args = append(args, "-C", req.WorkDir)
+	}
+	if resume {
+		args = append(args, req.SessionID)
+	}
+	args = append(args, "-")
 	return args
 }
 
@@ -58,21 +74,39 @@ func (CLI) Exec(ctx context.Context, req ExecRequest) (ExecResult, error) {
 	if strings.TrimSpace(req.WorkDir) == "" || strings.TrimSpace(req.SchemaPath) == "" || strings.TrimSpace(req.OutputPath) == "" {
 		return ExecResult{}, fmt.Errorf("Codex 工作目录、schema 或输出文件为空")
 	}
-	bin, err := resolveBinary(binary)
+	workDir, err := filepath.Abs(req.WorkDir)
+	if err != nil {
+		return ExecResult{}, fmt.Errorf("Codex 工作目录无效: %w", err)
+	}
+	schemaPath, err := filepath.Abs(req.SchemaPath)
+	if err != nil {
+		return ExecResult{}, fmt.Errorf("Codex schema 路径无效: %w", err)
+	}
+	outputPath, err := filepath.Abs(req.OutputPath)
+	if err != nil {
+		return ExecResult{}, fmt.Errorf("Codex 输出路径无效: %w", err)
+	}
+	req.WorkDir, req.SchemaPath, req.OutputPath = workDir, schemaPath, outputPath
+	exe, lead, err := resolveLaunch(binary)
 	if err != nil {
 		return ExecResult{}, err
 	}
-	args := BuildArgs(req)
-	cmd, err := commandContext(ctx, bin, args)
+	args := append(append([]string{}, lead...), BuildArgs(req)...)
+	result := ExecResult{Args: args}
+	cmd, err := commandContext(ctx, exe, args)
 	if err != nil {
-		return ExecResult{}, err
+		return result, err
 	}
 	cmd.Dir = req.WorkDir
+	cmd.Stdin = strings.NewReader(req.Prompt)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
+	result.Started = true
 	runErr := cmd.Run()
-	result := ExecResult{Stdout: stdout.String(), Stderr: redact(stderr.String()), SessionID: sessionFromJSONL(stdout.Bytes())}
+	result.Stdout = stdout.String()
+	result.Stderr = redact(stderr.String())
+	result.SessionID = sessionFromJSONL(stdout.Bytes())
 	if result.SessionID == "" {
 		result.SessionID = req.SessionID
 	}
