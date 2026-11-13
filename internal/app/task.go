@@ -70,22 +70,20 @@ func (e *Engine) CreateTask(ctx context.Context, in NewTask) (TaskView, error) {
 		if err != nil {
 			return err
 		}
+		generic := strings.TrimSpace(configString(ctx, tx, "generic_prompt", ""))
 		prompt := ""
 		var ruleID *int64
 		var version *int
 		if ok && rule.Enabled {
-			prompt = rule.Prompt
+			prompt = ComposePrompt(generic, rule.Prompt)
 			ruleID = &rule.ID
 			version = &rule.Version
+		} else if configString(ctx, tx, "prompt_fallback", "block") == "generic" && generic != "" {
+			prompt = ComposePrompt(generic, "")
 		} else {
-			fallback := configString(ctx, tx, "prompt_fallback", "block")
-			generic := strings.TrimSpace(configString(ctx, tx, "generic_prompt", ""))
-			if fallback == "generic" && generic != "" {
-				prompt = generic
-			} else {
-				return fail(409, "PROMPT_REQUIRED", "这个类目没有启用的提示词，系统也没有可用的通用提示词", nil)
-			}
+			return fail(409, "PROMPT_REQUIRED", "这个类目没有启用的提示词，系统也没有可用的通用提示词", nil)
 		}
+		prompt = RenderPrompt(prompt, in.BaseSKU)
 		reviews := configReviews(ctx, tx)
 		copyAuto, planAuto, resultAuto := reviews.Copy, reviews.VisualPlan, reviews.VisualResult
 		if in.CopyAutoApprove != nil {

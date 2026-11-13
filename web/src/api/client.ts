@@ -76,6 +76,16 @@ export type Settings = {
   oss_provider: string;
   oss_configured: boolean;
   oss_message: string;
+  storage?: {
+    endpoint: string;
+    region: string;
+    bucket: string;
+    access_key_id: string;
+    secret_access_key: string;
+    path_style: boolean;
+    public_base_url: string;
+    key_prefix: string;
+  };
   pricing_rules: { id: number; name: string; enabled: boolean; parameters_json: unknown }[];
   active_pricing_rule_id?: number;
 };

@@ -12,7 +12,7 @@ import (
 
 // V2Migrations 是 V2 进程会执行的脚本。V1 的 001–004 只保留作历史，不会在这里运行，也不会删除旧表。
 func V2Migrations() []string {
-	return []string{"0001_v2_init.sql", "0002_app_support.sql"}
+	return []string{"0001_v2_init.sql", "0002_app_support.sql", "0003_s3_settings.sql"}
 }
 
 func Migrate(ctx context.Context, pool *pgxpool.Pool, dir string) error {

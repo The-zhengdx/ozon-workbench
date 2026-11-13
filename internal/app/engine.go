@@ -52,14 +52,20 @@ func (e *Engine) apiBase() string {
 }
 
 func (e *Engine) uploader() storage.Store {
-	if e.Uploader == nil {
+	if e.Uploader != nil {
+		if store := e.Uploader(); store != nil {
+			return store
+		}
+	}
+	cfg := e.loadS3(context.Background())
+	if !cfg.ready() {
 		return storage.None{}
 	}
-	store := e.Uploader()
-	if store == nil {
-		return storage.None{}
-	}
-	return store
+	return storage.NewS3(cfg.s3Config())
+}
+
+func (e *Engine) storagePrefix(ctx context.Context) string {
+	return e.loadS3(ctx).KeyPrefix
 }
 
 func (e *Engine) ozon(shop domain.Shop) ozonapi.Client {

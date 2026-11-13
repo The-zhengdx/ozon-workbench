@@ -61,31 +61,34 @@ type Client interface {
 
 // Mock 记录调用次数。SearchErr / ListErr 非空时必须把错误返回给调用方，不能变成空列表。
 type Mock struct {
-	TreeBody    json.RawMessage
-	Attrs       []Attribute
-	SearchHits  []Value
-	ListHits    []Value
-	ListLast    int64
-	ListDone    bool
-	SearchErr   error
-	ListErr     error
-	AttrErr     error
-	TreeErr     error
-	Currency    string
-	VerifyErr   error
-	Imports     [][]json.RawMessage
-	ImportTask  int64
-	ImportErr   error
-	Info        map[int64][]ImportRow
-	InfoErr     error
-	Platforms   []PlatformRow
-	AttrCalls   int
-	SearchCalls int
+	TreeBody         json.RawMessage
+	Attrs            []Attribute
+	SearchHits       []Value
+	ListHits         []Value
+	ListLast         int64
+	ListDone         bool
+	SearchErr        error
+	ListErr          error
+	AttrErr          error
+	TreeErr          error
+	Currency         string
+	VerifyErr        error
+	Imports          [][]json.RawMessage
+	ImportTask       int64
+	ImportErr        error
+	Info             map[int64][]ImportRow
+	InfoErr          error
+	Platforms        []PlatformRow
+	AttrCalls        int
+	SearchCalls      int
+	LastTreeLanguage string
+	LastAttrLanguage string
 }
 
 func (m *Mock) Source() string { return "mock" }
 
-func (m *Mock) Tree(context.Context, string) (json.RawMessage, error) {
+func (m *Mock) Tree(_ context.Context, language string) (json.RawMessage, error) {
+	m.LastTreeLanguage = language
 	if m.TreeErr != nil {
 		return nil, m.TreeErr
 	}
@@ -95,8 +98,9 @@ func (m *Mock) Tree(context.Context, string) (json.RawMessage, error) {
 	return append(json.RawMessage(nil), m.TreeBody...), nil
 }
 
-func (m *Mock) Attributes(context.Context, int64, int64, string) ([]Attribute, error) {
+func (m *Mock) Attributes(_ context.Context, _, _ int64, language string) ([]Attribute, error) {
 	m.AttrCalls++
+	m.LastAttrLanguage = language
 	if m.AttrErr != nil {
 		return nil, m.AttrErr
 	}

@@ -24,12 +24,14 @@ type S3 struct {
 	AccessKey  string
 	SecretKey  string
 	PublicBase string
+	PathStyle  bool
 	HTTP       *http.Client
 	Now        func() time.Time
 }
 
 type S3Config struct {
 	Endpoint, Region, Bucket, AccessKey, SecretKey, PublicBase string
+	VirtualHost                                                bool
 }
 
 func NewS3(cfg S3Config) *S3 {
@@ -40,7 +42,8 @@ func NewS3(cfg S3Config) *S3 {
 	return &S3{
 		Endpoint: strings.TrimRight(cfg.Endpoint, "/"), Region: region, Bucket: cfg.Bucket,
 		AccessKey: cfg.AccessKey, SecretKey: cfg.SecretKey, PublicBase: strings.TrimRight(cfg.PublicBase, "/"),
-		HTTP: &http.Client{Timeout: 60 * time.Second}, Now: time.Now,
+		PathStyle: !cfg.VirtualHost,
+		HTTP:      &http.Client{Timeout: 60 * time.Second}, Now: time.Now,
 	}
 }
 
@@ -77,8 +80,7 @@ func (s *S3) Upload(ctx context.Context, localPath, key string) (Object, error) 
 	if err != nil {
 		return Object{}, err
 	}
-	endpoint := s.Endpoint + "/" + s.Bucket + "/" + escapeKey(key)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, endpoint, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, s.objectURL(key), bytes.NewReader(body))
 	if err != nil {
 		return Object{}, err
 	}
@@ -93,11 +95,89 @@ func (s *S3) Upload(ctx context.Context, localPath, key string) (Object, error) 
 		msg, _ := io.ReadAll(io.LimitReader(res.Body, 2048))
 		return Object{}, fmt.Errorf("S3 HTTP %d %s", res.StatusCode, strings.TrimSpace(string(msg)))
 	}
-	return Object{Key: key, PublicURL: s.PublicBase + "/" + escapeKey(key), Size: int64(len(body))}, nil
+	return Object{Key: key, PublicURL: s.PublicURL(key), Size: int64(len(body))}, nil
+}
+
+func (s *S3) Put(ctx context.Context, key string, body []byte, contentType string) error {
+	key = strings.Trim(key, "/")
+	if key == "" || strings.Contains(key, "..") {
+		return fmt.Errorf("非法的对象键")
+	}
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, s.objectURL(key), bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", contentType)
+	s.sign(req, body)
+	res, err := s.HTTP.Do(req)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+	if res.StatusCode >= 300 {
+		msg, _ := io.ReadAll(io.LimitReader(res.Body, 2048))
+		return fmt.Errorf("S3 HTTP %d %s", res.StatusCode, strings.TrimSpace(string(msg)))
+	}
+	return nil
+}
+
+func (s *S3) Head(ctx context.Context, key string) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodHead, s.objectURL(key), nil)
+	if err != nil {
+		return err
+	}
+	s.sign(req, nil)
+	res, err := s.HTTP.Do(req)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+	if res.StatusCode >= 300 {
+		return fmt.Errorf("S3 HEAD HTTP %d", res.StatusCode)
+	}
+	return nil
+}
+
+func (s *S3) CheckPublic(ctx context.Context, publicURL string) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, publicURL, nil)
+	if err != nil {
+		return err
+	}
+	res, err := s.HTTP.Do(req)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+	_, _ = io.Copy(io.Discard, res.Body)
+	if res.StatusCode != http.StatusOK {
+		return fmt.Errorf("公开地址 HTTP %d", res.StatusCode)
+	}
+	return nil
+}
+
+func (s *S3) PublicURL(key string) string {
+	return s.PublicBase + "/" + escapeKey(strings.Trim(key, "/"))
+}
+
+func (s *S3) objectURL(key string) string {
+	escaped := escapeKey(strings.Trim(key, "/"))
+	if s.PathStyle {
+		return s.Endpoint + "/" + s.Bucket + "/" + escaped
+	}
+	parsed, err := url.Parse(s.Endpoint)
+	if err != nil || parsed.Host == "" {
+		return s.Endpoint + "/" + s.Bucket + "/" + escaped
+	}
+	parsed.Host = s.Bucket + "." + parsed.Host
+	parsed.Path = "/" + escaped
+	return parsed.String()
 }
 
 func (s *S3) Delete(ctx context.Context, key string) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, s.Endpoint+"/"+s.Bucket+"/"+escapeKey(key), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, s.objectURL(key), nil)
 	if err != nil {
 		return err
 	}

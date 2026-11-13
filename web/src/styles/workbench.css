@@ -102,7 +102,12 @@ h3 { font-size: 16px; }
   background: #25615b; color: #fff; border: 1px solid #58a79c; border-radius: 8px;
   padding: 10px 15px; max-width: min(85vw, 560px);
 }
-.catalogLayout { display: grid; grid-template-columns: minmax(240px, .9fr) minmax(0, 2fr); gap: 14px; align-items: start; }
+.catalogLayout { display: grid; grid-template-columns: minmax(280px, .9fr) minmax(0, 2fr); gap: 14px; align-items: start; }
+.treePane { min-height: 280px; }
+.ant-tree { background: transparent; color: var(--text); }
+.ant-tree-node-content-wrapper, .ant-tree-title { color: var(--text) !important; }
+.ant-tree-node-content-wrapper:hover, .ant-tree-node-selected { background: #133032 !important; }
+.ant-tree-switcher { color: var(--dim) !important; }
 .catTree { max-height: 58vh; overflow: auto; scrollbar-color: #415c60 transparent; margin: 10px 0; padding: 0; }
 .catTree li { list-style: none; }
 .catTree ul { padding-left: 14px; margin: 0; border-left: 1px solid var(--line); }
