@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from "vue";
 
 import { http, type Settings } from "../api/client";
 import { asList } from "../api/lists";
+import { pricingRuleBody, settingsPatchBody } from "../api/payloads";
 
 const settings = ref<Settings | null>(null);
 const rules = computed(() => asList(settings.value?.pricing_rules));
@@ -40,13 +41,13 @@ async function save() {
   error.value = "";
   message.value = "";
   try {
-    settings.value = normalize((await http.patch("/api/system/settings", {
+    settings.value = normalize((await http.patch("/api/system/settings", settingsPatchBody({
       max_active_tasks: Number(form.max_active_tasks),
       prompt_fallback: form.prompt_fallback,
       generic_prompt: form.generic_prompt,
       max_infra_retries: Number(form.max_infra_retries),
       codex_binary: form.codex_binary,
-    })).data);
+    }))).data);
     message.value = "已保存。正在运行的任务不会被强制停止。";
   } catch (err) {
     error.value = err instanceof Error ? err.message : "保存失败";
@@ -62,7 +63,7 @@ async function addRule() {
     }),
   );
   try {
-    await http.post("/api/pricing-rules", {
+    await http.post("/api/pricing-rules", pricingRuleBody({
       name: form.rule_name,
       enabled: true,
       parameters_json: {
@@ -71,7 +72,7 @@ async function addRule() {
         variables,
         round_unit: form.round_unit,
       },
-    });
+    }));
     message.value = "定价规则已保存。表达式或变量不完整时，系统不会计算价格。";
     await load();
   } catch (err) {

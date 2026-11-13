@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 
 import { http, type Task } from "../api/client";
 import { asList } from "../api/lists";
+import { taskFormFields } from "../api/payloads";
 import { useShopStore } from "../stores/shop";
 
 const shop = useShopStore();
@@ -34,14 +35,17 @@ async function create() {
     return;
   }
   const body = new FormData();
-  body.set("shop_id", String(shop.current.id));
-  body.set("description_category_id", form.description_category_id);
-  body.set("type_id", form.type_id);
-  body.set("base_sku", form.base_sku);
-  body.set("origin_link", form.origin_link);
-  body.set("copy_auto_approve", String(form.copy_auto_approve));
-  body.set("visual_plan_auto_approve", String(form.visual_plan_auto_approve));
-  body.set("visual_result_auto_approve", String(form.visual_result_auto_approve));
+  const fields: Record<(typeof taskFormFields)[number], string> = {
+    shop_id: String(shop.current.id),
+    description_category_id: form.description_category_id,
+    type_id: form.type_id,
+    base_sku: form.base_sku,
+    origin_link: form.origin_link,
+    copy_auto_approve: String(form.copy_auto_approve),
+    visual_plan_auto_approve: String(form.visual_plan_auto_approve),
+    visual_result_auto_approve: String(form.visual_result_auto_approve),
+  };
+  for (const key of taskFormFields) body.set(key, fields[key]);
   const input = document.getElementById("files") as HTMLInputElement | null;
   for (const file of input?.files ?? []) body.append("files", file);
   try {

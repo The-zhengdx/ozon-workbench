@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from "vue";
 
 import { http, type Product } from "../api/client";
 import { asList } from "../api/lists";
+import { publishBody } from "../api/payloads";
 import { useShopStore } from "../stores/shop";
 
 const shop = useShopStore();
@@ -32,7 +33,7 @@ async function publish() {
   error.value = "";
   message.value = "";
   try {
-    const { data } = await http.post("/api/products/publish", { shop_id: shop.currentShopId, ids: picked.value });
+    const { data } = await http.post("/api/products/publish", publishBody(shop.currentShopId || 0, picked.value));
     const batches = asList(data);
     message.value = `已提交 ${batches.length} 个批次。导入受理不等于已上架。`;
     picked.value = [];

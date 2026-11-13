@@ -81,8 +81,12 @@ func (s *Server) listShops(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) createShop(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		Name, ClientID, APIKey, CurrencyCode, VAT string
-		Enable                                    *bool
+		Name         string         `json:"name"`
+		ClientID     stringOrNumber `json:"client_id"`
+		APIKey       string         `json:"api_key"`
+		CurrencyCode string         `json:"currency_code"`
+		VAT          string         `json:"vat"`
+		Enable       *bool          `json:"enable"`
 	}
 	if !decode(w, r, &body) {
 		return
@@ -95,7 +99,7 @@ func (s *Server) createShop(w http.ResponseWriter, r *http.Request) {
 		vat = &body.VAT
 	}
 	shop, err := s.Engine.CreateShop(r.Context(), app.ShopInput{
-		Name: body.Name, ClientID: body.ClientID, APIKey: body.APIKey, CurrencyCode: currency, VAT: vat, Enable: body.Enable,
+		Name: body.Name, ClientID: string(body.ClientID), APIKey: body.APIKey, CurrencyCode: currency, VAT: vat, Enable: body.Enable,
 	})
 	if err != nil {
 		writeErr(w, err)
@@ -107,8 +111,12 @@ func (s *Server) createShop(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) patchShop(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		Name, ClientID, APIKey, CurrencyCode, VAT *string
-		Enable                                    *bool
+		Name         *string         `json:"name"`
+		ClientID     *stringOrNumber `json:"client_id"`
+		APIKey       *string         `json:"api_key"`
+		CurrencyCode *string         `json:"currency_code"`
+		VAT          *string         `json:"vat"`
+		Enable       *bool           `json:"enable"`
 	}
 	if !decode(w, r, &body) {
 		return
@@ -118,7 +126,7 @@ func (s *Server) patchShop(w http.ResponseWriter, r *http.Request) {
 		in.Name = *body.Name
 	}
 	if body.ClientID != nil {
-		in.ClientID = *body.ClientID
+		in.ClientID = string(*body.ClientID)
 	}
 	if body.APIKey != nil {
 		in.APIKey = *body.APIKey

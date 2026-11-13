@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from "vue";
 
 import { http, type Shop } from "../api/client";
 import { asList } from "../api/lists";
+import { shopCreateBody, shopEnableBody } from "../api/payloads";
 import { useShopStore } from "../stores/shop";
 
 const shop = useShopStore();
@@ -15,7 +16,7 @@ onMounted(() => shop.load().catch((err: Error) => (error.value = err.message)));
 async function create() {
   error.value = "";
   try {
-    await http.post("/api/shops", form);
+    await http.post("/api/shops", shopCreateBody(form));
     form.name = "";
     form.client_id = "";
     form.api_key = "";
@@ -26,7 +27,7 @@ async function create() {
 }
 
 async function toggle(item: Shop) {
-  await http.patch(`/api/shops/${item.id}`, { enable: !item.enable });
+  await http.patch(`/api/shops/${item.id}`, shopEnableBody(!item.enable));
   await shop.load();
 }
 </script>
