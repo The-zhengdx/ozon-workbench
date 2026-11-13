@@ -20,11 +20,8 @@ services:
     build: .
     environment:
       DATABASE_URL: postgres://ozon:ozon@postgres:5432/ozon_workbench?sslmode=disable
-      OZON_CREDENTIAL_KEY: ${OZON_CREDENTIAL_KEY:-dev-only-local-key-change-me-please}
       OZON_MOCK: ${OZON_MOCK:-true}
       OZON_API_BASE: ${OZON_API_BASE:-https://api-seller.ozon.ru}
-      # 留空时使用镜像内 config.yaml（默认直连，忽略容器里的 HTTP_PROXY）。
-      OZON_PROXY: ${OZON_PROXY:-}
       HTTP_ADDR: 0.0.0.0:18081
     ports:
       - "18081:18081"

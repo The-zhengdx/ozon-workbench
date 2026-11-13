@@ -11,7 +11,7 @@ import (
 )
 
 // ErrUnconfigured is returned when no provider can publish a public URL.
-var ErrUnconfigured = errors.New("图床未配置。Ozon 只接受公网 HTTPS 图片和视频地址。请在配置里把 storage.provider 设为 yandex，并用环境变量 YANDEX_DISK_TOKEN 提供 OAuth 令牌，然后再确认媒体。")
+var ErrUnconfigured = errors.New("OSS 未配置。需要可长期访问的 HTTPS 地址时，先在系统设置或环境变量里填写 Provider、Bucket 和公开基址。")
 
 // Object is one uploaded file.
 // PublicURL is the direct download URL handed to Ozon.
