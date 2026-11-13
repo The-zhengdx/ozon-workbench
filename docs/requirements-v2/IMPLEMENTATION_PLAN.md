@@ -8,7 +8,7 @@
 2. **`ozon_system_settings` 只有 `max_active_tasks`。** 系统设置页还要 OSS、Codex、通用提示词、审核默认值和定价规则。这些不写入店铺表，也不加列到该 3 字段表。`0002_app_support.sql` 增加 `ozon_app_config`、幂等键、任务只读类目 Token。
 3. **定价公式、汇率、利润率没有定稿。** 只实现白名单算术表达式。未保存表达式和变量时，草稿可以入库，但 `price`/`old_price` 保持空、`validation_status=invalid`，刊登预检拒绝。代码里没有默认倍率或汇率。
 4. **默认类目提示词正文没有提供。** 不预置任何类目规则文案。未配置类目提示词时默认阻断创建任务；只有操作者写入通用提示词并把回退策略改成 `generic` 才降级。
-5. **OSS 厂商与公共域名没有提供。** 默认 `none`，上传直接失败。保留 Yandex Disk 适配器，并增加 S3 兼容适配器。Yandex 直链会过期，不能当作永久商品图；未配置可长期访问的 HTTPS 基址时，刊登预检失败。
+5. **OSS 厂商与公共域名没有提供。** 默认不上传。对象存储只走 S3 兼容接口，配置在系统设置里明文保存。未配置可长期访问的 HTTPS 基址时，刊登预检失败。
 6. **视觉生成工具未指定。** 只保留生成器接口。未配置时不报“已生成”。`media_ready` 必须指向任务目录里真实存在的文件。
 7. **Ozon 视频属性结构未指定。** 不发明顶层 `video` 字段，不写死属性 ID。视频只允许出现在已通过类目属性校验的 `complex_attributes` 中，且 URL 必须来自已上传素材。
 8. **账户币种/VAT 的官方核验接口未在需求中钉死。** 店铺默认 `CNY`/`0.1` 只作为本地默认。真实客户端在刊登前调用可配置的账户核验；核验失败则阻断，不用猜测结果冒充成功。Mock 只用于测试和 `OZON_MOCK=true`。
@@ -37,7 +37,7 @@ internal/httpapi           # REST
 internal/ozonapi           # 官方 API 与 Mock
 internal/pricing           # 可配置表达式，无默认系数
 internal/store             # 内存库与 PostgreSQL
-internal/storage           # none / mock / yandex / s3
+internal/storage           # none / mock / s3
 web                        # Vue 3 管理台
 ```
 

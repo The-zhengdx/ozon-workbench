@@ -85,6 +85,30 @@ export function messageBody(content: string): MessageBody {
   return { content };
 }
 
+export type StorageBody = {
+  endpoint: string;
+  region: string;
+  bucket: string;
+  access_key_id: string;
+  secret_access_key: string;
+  path_style: boolean;
+  public_base_url: string;
+  key_prefix: string;
+};
+
+export function storageBody(input: StorageBody): StorageBody {
+  return {
+    endpoint: input.endpoint.trim(),
+    region: input.region.trim(),
+    bucket: input.bucket.trim(),
+    access_key_id: input.access_key_id.trim(),
+    secret_access_key: input.secret_access_key,
+    path_style: input.path_style,
+    public_base_url: input.public_base_url.trim(),
+    key_prefix: input.key_prefix.trim(),
+  };
+}
+
 export type TreeSyncBody = { shop_id: number; language: string };
 
 export function treeSyncBody(shopId: number, language: string): TreeSyncBody {

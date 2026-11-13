@@ -29,6 +29,18 @@ type Settings struct {
 	OSSProvider         string               `json:"oss_provider"`
 	OSSConfigured       bool                 `json:"oss_configured"`
 	OSSMessage          string               `json:"oss_message"`
+	Storage             S3Settings           `json:"storage"`
+}
+
+type S3Settings struct {
+	Endpoint        string `json:"endpoint"`
+	Region          string `json:"region"`
+	Bucket          string `json:"bucket"`
+	AccessKeyID     string `json:"access_key_id"`
+	SecretAccessKey string `json:"secret_access_key"`
+	PathStyle       bool   `json:"path_style"`
+	PublicBaseURL   string `json:"public_base_url"`
+	KeyPrefix       string `json:"key_prefix"`
 }
 
 func (e *Engine) GetSettings(ctx context.Context) (Settings, error) {
@@ -62,6 +74,7 @@ func (e *Engine) GetSettings(ctx context.Context) (Settings, error) {
 	if out.PricingRules == nil {
 		out.PricingRules = []domain.PricingRule{}
 	}
+	out.Storage = e.loadS3(ctx)
 	uploader := e.uploader()
 	out.OSSProvider = uploader.Name()
 	out.OSSConfigured = uploader.Configured()
@@ -77,6 +90,7 @@ type SettingsPatch struct {
 	MaxInfraRetries     *int
 	CodexBinary         *string
 	ActivePricingRuleID *int64
+	Storage             *S3Settings
 }
 
 func (e *Engine) PatchSettings(ctx context.Context, patch SettingsPatch) (Settings, error) {
@@ -120,6 +134,14 @@ func (e *Engine) PatchSettings(ctx context.Context, patch SettingsPatch) (Settin
 		}
 		if patch.ActivePricingRuleID != nil {
 			if err := putJSON(ctx, tx, "active_pricing_rule_id", *patch.ActivePricingRuleID, now); err != nil {
+				return err
+			}
+		}
+		if patch.Storage != nil {
+			if err := validateS3(*patch.Storage); err != nil {
+				return err
+			}
+			if err := putJSON(ctx, tx, "s3", *patch.Storage, now); err != nil {
 				return err
 			}
 		}

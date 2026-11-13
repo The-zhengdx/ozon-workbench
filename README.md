@@ -28,7 +28,7 @@ make web
 
 浏览器打开 `http://127.0.0.1:43123`。接口代理到 `http://127.0.0.1:18081`。
 
-后端启动时会从当前目录向上查找 `.env` 并加载尚未设置的变量。Postgres 可以是空库，程序只执行 `migrations/0001_v2_init.sql` 和 `migrations/0002_app_support.sql`。以前的 V1 表不会被删除。
+后端启动时会从当前目录向上查找 `.env` 并加载尚未设置的变量。Postgres 可以是空库，程序只执行 `migrations/0001_v2_init.sql`、`migrations/0002_app_support.sql` 和 `migrations/0003_s3_settings.sql`。以前的 V1 表不会被删除。
 
 `make build` 会构建前端并生成 `bin/ozon-workbench.exe`。
 
@@ -38,7 +38,7 @@ Codex 装在 npm 里时，Windows 上通常是 `codex.cmd`。把 `.env` 的 `COD
 
 - 定价表达式、变量和取整单位。没配好时草稿可以生成，但售价为空，刊登预检会拒绝。
 - 类目提示词正文。没有专属提示词时默认阻断创建任务。只有你写了通用提示词，并把回退改成「使用通用提示词」才会降级。
-- OSS。默认不上传。S3 需要 Endpoint、Bucket、密钥和 `https://` 公开基址。Yandex Disk 仍可作为适配器，但它的直链会过期，不能当成永久商品图。
+- 对象存储。默认不上传。在系统设置里填写 S3 Endpoint、Region、Bucket、密钥、Path-style、公开基址和可选前缀。密钥明文存在数据库。没有可用的 HTTPS 公开基址时，素材上传会停住。
 - 图像和视频生成器。没有配置时，系统不会宣称已经生成文件。
 - Ozon 账户币种。店铺默认 CNY / 0.1 只是本地默认。真实刊登前核验失败就会停住。
 

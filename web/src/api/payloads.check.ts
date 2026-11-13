@@ -11,6 +11,7 @@ import {
   shopCreateBody,
   shopEnableBody,
   taskFormFields,
+  storageBody,
   treeSyncBody,
 } from "./payloads.ts";
 
@@ -36,7 +37,26 @@ assert.deepEqual(productPatchBody("帽子", "10"), { name: "帽子", price: "10"
 assert.deepEqual(publishBody(1, [2]), { shop_id: 1, ids: [2] });
 assert.deepEqual(reviewBody("copy", "approve"), { kind: "copy", decision: "approve", note: "" });
 assert.deepEqual(messageBody("补充"), { content: "补充" });
-assert.deepEqual(treeSyncBody(1, "ZH"), { shop_id: 1, language: "ZH" });
+assert.deepEqual(treeSyncBody(1, "ZH_HANS"), { shop_id: 1, language: "ZH_HANS" });
+assert.deepEqual(storageBody({
+  endpoint: " https://s3.example.com ",
+  region: " ru-1 ",
+  bucket: " goods ",
+  access_key_id: " AKID ",
+  secret_access_key: "plain-secret",
+  path_style: true,
+  public_base_url: " https://cdn.example.com ",
+  key_prefix: " ozon ",
+}), {
+  endpoint: "https://s3.example.com",
+  region: "ru-1",
+  bucket: "goods",
+  access_key_id: "AKID",
+  secret_access_key: "plain-secret",
+  path_style: true,
+  public_base_url: "https://cdn.example.com",
+  key_prefix: "ozon",
+});
 assert.deepEqual(taskFormFields, [
   "shop_id",
   "description_category_id",

@@ -13,11 +13,14 @@ import (
 )
 
 type TreeView struct {
-	Language string          `json:"language"`
-	Tree     json.RawMessage `json:"tree"`
-	SyncedAt time.Time       `json:"synced_at"`
-	Source   string          `json:"source"`
-	Cached   bool            `json:"cached"`
+	Language     string          `json:"language"`
+	LanguageUsed string          `json:"language_used"`
+	Fallback     bool            `json:"fallback"`
+	Tree         json.RawMessage `json:"tree"`
+	Nodes        []TreeNode      `json:"nodes"`
+	SyncedAt     time.Time       `json:"synced_at"`
+	Source       string          `json:"source"`
+	Cached       bool            `json:"cached"`
 }
 
 func (e *Engine) SyncTree(ctx context.Context, shopID int64, language string) (TreeView, error) {
@@ -39,26 +42,33 @@ func (e *Engine) SyncTree(ctx context.Context, shopID int64, language string) (T
 	}); err != nil {
 		return TreeView{}, err
 	}
-	return TreeView{Language: language, Tree: raw, SyncedAt: now, Source: e.ozon(shop).Source(), Cached: false}, nil
+	nodes := ParseCategoryTree(raw)
+	return TreeView{Language: language, LanguageUsed: language, Tree: raw, Nodes: nodes, SyncedAt: now, Source: e.ozon(shop).Source(), Cached: false}, nil
 }
 
 func (e *Engine) GetTree(ctx context.Context, language string) (TreeView, error) {
-	language = normLang(language)
-	var raw json.RawMessage
-	var synced time.Time
-	var ok bool
-	err := e.DB.InTx(ctx, func(tx store.Tx) error {
-		var err error
-		raw, synced, ok, err = tx.GetTree(ctx, language)
-		return err
-	})
-	if err != nil {
-		return TreeView{}, err
+	requested := normLang(language)
+	for i, candidate := range displayLangs(requested) {
+		var raw json.RawMessage
+		var synced time.Time
+		var ok bool
+		err := e.DB.InTx(ctx, func(tx store.Tx) error {
+			var err error
+			raw, synced, ok, err = tx.GetTree(ctx, candidate)
+			return err
+		})
+		if err != nil {
+			return TreeView{}, err
+		}
+		if !ok || len(raw) == 0 {
+			continue
+		}
+		return TreeView{
+			Language: requested, LanguageUsed: candidate, Fallback: i > 0,
+			Tree: raw, Nodes: ParseCategoryTree(raw), SyncedAt: synced, Source: "cache", Cached: true,
+		}, nil
 	}
-	if !ok {
-		return TreeView{}, fail(404, "TREE_EMPTY", "还没有类目树缓存，请先同步", nil)
-	}
-	return TreeView{Language: language, Tree: raw, SyncedAt: synced, Source: "cache", Cached: true}, nil
+	return TreeView{}, fail(404, "TREE_EMPTY", "还没有类目树缓存，请先同步", nil)
 }
 
 type TreeHit struct {
@@ -174,6 +184,72 @@ func (e *Engine) Attributes(ctx context.Context, shopID, categoryID, typeID int6
 	}
 	_ = fetched
 	return cached, nil
+}
+
+type AttrView struct {
+	Language     string          `json:"language"`
+	LanguageUsed string          `json:"language_used"`
+	Fallback     bool            `json:"fallback"`
+	Synced       bool            `json:"synced"`
+	FetchedAt    *time.Time      `json:"fetched_at,omitempty"`
+	Attributes   json.RawMessage `json:"attributes"`
+}
+
+func (e *Engine) LocalAttributes(ctx context.Context, shopID, categoryID, typeID int64, language string) (AttrView, error) {
+	requested := normLang(language)
+	if shopID <= 0 || categoryID <= 0 || typeID <= 0 {
+		return AttrView{Language: requested, LanguageUsed: requested, Attributes: []byte("[]")}, nil
+	}
+	for i, candidate := range displayLangs(requested) {
+		var cached json.RawMessage
+		var fetched time.Time
+		var found bool
+		err := e.DB.InTx(ctx, func(tx store.Tx) error {
+			var err error
+			cached, fetched, _, found, err = tx.GetAttrCache(ctx, shopID, categoryID, typeID, candidate)
+			return err
+		})
+		if err != nil {
+			return AttrView{}, err
+		}
+		if !found || len(cached) == 0 {
+			continue
+		}
+		when := fetched
+		return AttrView{
+			Language: requested, LanguageUsed: candidate, Fallback: i > 0,
+			Synced: true, FetchedAt: &when, Attributes: cached,
+		}, nil
+	}
+	return AttrView{Language: requested, LanguageUsed: requested, Attributes: []byte("[]")}, nil
+}
+
+func (e *Engine) SyncAttributes(ctx context.Context, shopID, categoryID, typeID int64, language, token string) (AttrView, error) {
+	language = normLang(language)
+	shop, err := e.shopForCategory(ctx, shopID, categoryID, typeID, token)
+	if err != nil {
+		return AttrView{}, err
+	}
+	attrs, err := e.ozon(shop).Attributes(ctx, categoryID, typeID, language)
+	if err != nil {
+		return AttrView{}, fail(502, "OZON_UPSTREAM_UNAVAILABLE", "属性查询失败", err.Error())
+	}
+	if attrs == nil {
+		attrs = []ozonapi.Attribute{}
+	}
+	raw, err := json.Marshal(attrs)
+	if err != nil {
+		return AttrView{}, err
+	}
+	now := e.now()
+	exp := e.cacheExpiry(ctx, now)
+	if err := e.DB.InTx(ctx, func(tx store.Tx) error {
+		return tx.PutAttrCache(ctx, shop.ID, categoryID, typeID, language, raw, now, exp)
+	}); err != nil {
+		return AttrView{}, err
+	}
+	when := now
+	return AttrView{Language: language, LanguageUsed: language, Synced: true, FetchedAt: &when, Attributes: raw}, nil
 }
 
 func (e *Engine) Dictionary(ctx context.Context, shopID, categoryID, typeID, attributeID int64, language, keyword string, page, pageSize int, token string) (any, error) {
@@ -372,14 +448,6 @@ func (e *Engine) cacheExpiry(ctx context.Context, now time.Time) *time.Time {
 	}
 	exp := now.Add(time.Duration(seconds) * time.Second)
 	return &exp
-}
-
-func normLang(language string) string {
-	language = strings.TrimSpace(language)
-	if language == "" {
-		return "RU"
-	}
-	return language
 }
 
 func expired(now time.Time, at *time.Time) bool {

@@ -588,8 +588,9 @@ func (e *Engine) prompt(task domain.Task, pending []domain.Message) string {
 	var b strings.Builder
 	b.WriteString("你是 Ozon 商品加工助手。只把最终业务结果写入 --output-schema 指定的文件。不要用自然语言代替 JSON。不要猜测采购成本或国内运费，缺失就返回 needs_input。不要计算最终售价。不要改 description_category_id 或 type_id。不要编造字典 ID 或 OSS URL。\n")
 	b.WriteString("查询类目属性时使用 curl.exe -sS，并带上下面的只读令牌。示例：\n")
-	b.WriteString(fmt.Sprintf("curl.exe -sS -H \"Authorization: Bearer %s\" \"%s/api/categories/%d/types/%d/attributes?language=RU\"\n",
+	b.WriteString(fmt.Sprintf("curl.exe -sS -H \"Authorization: Bearer %s\" \"%s/api/categories/%d/types/%d/attributes?language=ZH_HANS\"\n",
 		task.CategoryToken, e.apiBase(), task.DescriptionCategoryID, task.TypeID))
+	b.WriteString("language 只能是 ZH_HANS、EN 或 RU。属性名和字典值跟语言走，不要混用。\n")
 	b.WriteString("\n类目提示词：\n")
 	b.WriteString(task.PromptSnapshot)
 	b.WriteString("\n\n任务上下文：\n")

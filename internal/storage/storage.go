@@ -11,11 +11,11 @@ import (
 )
 
 // ErrUnconfigured is returned when no provider can publish a public URL.
-var ErrUnconfigured = errors.New("OSS 未配置。需要可长期访问的 HTTPS 地址时，先在系统设置或环境变量里填写 Provider、Bucket 和公开基址。")
+var ErrUnconfigured = errors.New("OSS 未配置。需要可长期访问的 HTTPS 地址时，先在系统设置里填写 S3 Endpoint、Bucket、密钥和公开基址。")
 
 // Object is one uploaded file.
 // PublicURL is the direct download URL handed to Ozon.
-// PublicKey is a stable handle (for Yandex Disk, the public page URL) used to refresh PublicURL.
+// PublicKey is a stable handle used to refresh PublicURL when a provider needs it.
 type Object struct {
 	Key       string
 	PublicURL string
@@ -41,7 +41,7 @@ func Unconfigured(err error) bool {
 	return errors.Is(err, ErrUnconfigured)
 }
 
-// Disabled is a named provider that cannot upload yet (for example Yandex without a token).
+// Disabled is a named provider that cannot upload yet.
 type Disabled struct {
 	Provider string
 	Reason   string

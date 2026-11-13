@@ -5,6 +5,7 @@ import { useRouter } from "vue-router";
 import { http, type Task } from "../api/client";
 import { asList } from "../api/lists";
 import { taskFormFields } from "../api/payloads";
+import CategoryTree, { type CategoryNode } from "../components/CategoryTree.vue";
 import { useShopStore } from "../stores/shop";
 
 const shop = useShopStore();
@@ -12,6 +13,8 @@ const router = useRouter();
 const tasks = ref<Task[]>([]);
 const rows = computed(() => asList(tasks.value));
 const error = ref("");
+const language = ref("ZH_HANS");
+const picked = ref<CategoryNode | null>(null);
 const form = reactive({
   description_category_id: "",
   type_id: "",
@@ -21,6 +24,13 @@ const form = reactive({
   visual_plan_auto_approve: false,
   visual_result_auto_approve: false,
 });
+
+function pick(node: CategoryNode) {
+  if (!node.leaf || !node.description_category_id || !node.type_id) return;
+  picked.value = node;
+  form.description_category_id = String(node.description_category_id);
+  form.type_id = String(node.type_id);
+}
 
 async function load() {
   tasks.value = asList((await http.get<Task[] | null>("/api/processing-tasks", { params: { shop_id: shop.currentShopId || undefined } })).data);
@@ -32,6 +42,10 @@ async function create() {
   error.value = "";
   if (!shop.current?.enable) {
     error.value = shop.current ? "当前店铺已停用，不能创建加工任务" : "先在顶部选择店铺";
+    return;
+  }
+  if (!form.description_category_id || !form.type_id) {
+    error.value = "在类目树上选择一个类型";
     return;
   }
   const body = new FormData();
@@ -61,8 +75,11 @@ async function create() {
   <p v-if="error" class="error">{{ error }}</p>
   <form class="panel block form-grid" @submit.prevent="create">
     <p class="wide muted">店铺：{{ shop.current ? `${shop.current.name}（只读）` : "未选择" }}</p>
-    <label class="field">类目 ID<input v-model="form.description_category_id" required /></label>
-    <label class="field">类型 ID<input v-model="form.type_id" required /></label>
+    <div class="wide panel block">
+      <CategoryTree v-model="language" :shop-id="shop.currentShopId || undefined" @select="pick" />
+      <p v-if="picked" class="mono">{{ picked.category_name }} / {{ picked.type_name }} · {{ form.description_category_id }} / {{ form.type_id }}</p>
+      <p v-else class="muted">点选一个类型后才会填上 description_category_id 和 type_id</p>
+    </div>
     <label class="field">主 SKU<input v-model="form.base_sku" required /></label>
     <label class="field">货源链接<input v-model="form.origin_link" /></label>
     <label class="field wide">素材<input id="files" type="file" multiple /></label>

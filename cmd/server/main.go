@@ -15,7 +15,6 @@ import (
 	"ozon-workbench/internal/envfile"
 	"ozon-workbench/internal/httpapi"
 	"ozon-workbench/internal/ozonapi"
-	"ozon-workbench/internal/storage"
 	"ozon-workbench/internal/store"
 )
 
@@ -48,14 +47,6 @@ func main() {
 				return &ozonapi.Mock{Currency: shop.CurrencyCode, TreeBody: []byte(`[]`)}
 			}
 			return ozonapi.NewHTTP(base, shop.ClientID, shop.APIKey)
-		},
-		Uploader: func() storage.Store {
-			store, err := storage.FromConfig(storage.ConfigFromEnv())
-			if err != nil {
-				log.Printf("OSS 配置无效: %v", err)
-				return storage.None{}
-			}
-			return store
 		},
 	}
 	if err := engine.Recover(ctx); err != nil {

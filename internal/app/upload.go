@@ -15,6 +15,8 @@ import (
 )
 
 func (e *Engine) uploadMedia(ctx context.Context, id int64) (bool, error) {
+	up := e.uploader()
+	prefix := e.storagePrefix(ctx)
 	var moved bool
 	err := e.DB.InTx(ctx, func(tx store.Tx) error {
 		task, err := tx.GetTask(store.ForUpdate(ctx), id)
@@ -39,7 +41,6 @@ func (e *Engine) uploadMedia(ctx context.Context, id int64) (bool, error) {
 			task.FinishedAt = &now
 			return tx.UpdateTask(ctx, task)
 		}
-		up := e.uploader()
 		if !up.Configured() {
 			task.Status = domain.StatusFailed
 			task.LastError = "OSS 未配置，不能上传素材"
@@ -59,7 +60,15 @@ func (e *Engine) uploadMedia(ctx context.Context, id int64) (bool, error) {
 				return tx.UpdateTask(ctx, task)
 			}
 			ext := filepath.Ext(full)
-			key := fmt.Sprintf("tasks/%d/%s/%s%s", task.ID, file.SKURef, file.AssetID, ext)
+			shop, err := tx.GetShop(ctx, task.ShopID)
+			if err != nil {
+				return err
+			}
+			sku := file.SKURef
+			if strings.TrimSpace(sku) == "" {
+				sku = task.BaseSKU
+			}
+			key := MediaObjectKey(prefix, shop.ClientID, sku, file.Role, file.MimeType, file.AssetID+ext)
 			existing := e.findAsset(ctx, tx, task.ID, file.AssetID)
 			public := ""
 			if existing.UploadStatus == domain.UploadUploaded && existing.ObjectKey == key && existing.PublicURL != "" {

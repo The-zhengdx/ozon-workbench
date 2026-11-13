@@ -41,11 +41,13 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/categories/tree", s.getTree)
 	s.mux.HandleFunc("POST /api/categories/tree/sync", s.syncTree)
 	s.mux.HandleFunc("GET /api/categories/{category_id}/types/{type_id}/attributes", s.attributes)
+	s.mux.HandleFunc("POST /api/categories/{category_id}/types/{type_id}/attributes/sync", s.syncAttributes)
 	s.mux.HandleFunc("GET /api/categories/{category_id}/types/{type_id}/attributes/{attribute_id}/values", s.values)
 	s.mux.HandleFunc("GET /api/category-rules/{category_id}/{type_id}", s.getRule)
 	s.mux.HandleFunc("PUT /api/category-rules/{category_id}/{type_id}", s.putRule)
 	s.mux.HandleFunc("GET /api/system/settings", s.getSettings)
 	s.mux.HandleFunc("PATCH /api/system/settings", s.patchSettings)
+	s.mux.HandleFunc("POST /api/system/storage/test", s.testStorage)
 	s.mux.HandleFunc("POST /api/pricing-rules", s.createPricing)
 	s.mux.HandleFunc("POST /api/processing-tasks", s.createTask)
 	s.mux.HandleFunc("GET /api/processing-tasks", s.listTasks)
@@ -175,6 +177,15 @@ func (s *Server) syncTree(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) attributes(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Query().Get("local") == "1" {
+		view, err := s.Engine.LocalAttributes(r.Context(), shopQuery(r), pathID(r, "category_id"), pathID(r, "type_id"), r.URL.Query().Get("language"))
+		if err != nil {
+			writeErr(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, view)
+		return
+	}
 	raw, err := s.Engine.Attributes(r.Context(), shopQuery(r), pathID(r, "category_id"), pathID(r, "type_id"), r.URL.Query().Get("language"), bearer(r))
 	if err != nil {
 		writeErr(w, err)
@@ -187,6 +198,22 @@ func (s *Server) attributes(w http.ResponseWriter, r *http.Request) {
 		body = []byte("[]")
 	}
 	_, _ = w.Write(body)
+}
+
+func (s *Server) syncAttributes(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		ShopID   int64  `json:"shop_id"`
+		Language string `json:"language"`
+	}
+	if !decode(w, r, &body) {
+		return
+	}
+	view, err := s.Engine.SyncAttributes(r.Context(), body.ShopID, pathID(r, "category_id"), pathID(r, "type_id"), body.Language, bearer(r))
+	if err != nil {
+		writeErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, view)
 }
 
 func (s *Server) values(w http.ResponseWriter, r *http.Request) {
@@ -247,6 +274,7 @@ func (s *Server) patchSettings(w http.ResponseWriter, r *http.Request) {
 		MaxInfraRetries     *int                `json:"max_infra_retries"`
 		CodexBinary         *string             `json:"codex_binary"`
 		ActivePricingRuleID *int64              `json:"active_pricing_rule_id"`
+		Storage             *app.S3Settings     `json:"storage"`
 	}
 	if !decode(w, r, &body) {
 		return
@@ -254,13 +282,25 @@ func (s *Server) patchSettings(w http.ResponseWriter, r *http.Request) {
 	settings, err := s.Engine.PatchSettings(r.Context(), app.SettingsPatch{
 		MaxActiveTasks: body.MaxActiveTasks, PromptFallback: body.PromptFallback, GenericPrompt: body.GenericPrompt,
 		ReviewDefaults: body.ReviewDefaults, MaxInfraRetries: body.MaxInfraRetries, CodexBinary: body.CodexBinary,
-		ActivePricingRuleID: body.ActivePricingRuleID,
+		ActivePricingRuleID: body.ActivePricingRuleID, Storage: body.Storage,
 	})
 	if err != nil {
 		writeErr(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, settings)
+}
+
+func (s *Server) testStorage(w http.ResponseWriter, r *http.Request) {
+	var body app.S3Settings
+	if !decode(w, r, &body) {
+		return
+	}
+	if err := s.Engine.TestS3(r.Context(), body); err != nil {
+		writeErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
 func (s *Server) createPricing(w http.ResponseWriter, r *http.Request) {
