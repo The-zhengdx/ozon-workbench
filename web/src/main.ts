@@ -8,6 +8,9 @@ import { router } from "./router";
 import "./styles/workbench.css";
 
 const app = createApp(App);
+app.config.errorHandler = (err, _instance, info) => {
+  console.error(info, err);
+};
 app.use(createPinia());
 app.use(router);
 app.use(Antd);

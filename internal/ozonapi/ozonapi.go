@@ -100,7 +100,7 @@ func (m *Mock) Attributes(context.Context, int64, int64, string) ([]Attribute, e
 	if m.AttrErr != nil {
 		return nil, m.AttrErr
 	}
-	return append([]Attribute(nil), m.Attrs...), nil
+	return append([]Attribute{}, m.Attrs...), nil
 }
 
 func (m *Mock) SearchValues(context.Context, int64, int64, int64, string, string, int) ([]Value, error) {
@@ -108,7 +108,7 @@ func (m *Mock) SearchValues(context.Context, int64, int64, int64, string, string
 	if m.SearchErr != nil {
 		return nil, m.SearchErr
 	}
-	return append([]Value(nil), m.SearchHits...), nil
+	return append([]Value{}, m.SearchHits...), nil
 }
 
 func (m *Mock) ListValues(context.Context, int64, int64, int64, string, int64, int) ([]Value, int64, bool, error) {
@@ -119,7 +119,7 @@ func (m *Mock) ListValues(context.Context, int64, int64, int64, string, int64, i
 	if last == 0 && len(m.ListHits) > 0 {
 		last = m.ListHits[len(m.ListHits)-1].ID
 	}
-	return append([]Value(nil), m.ListHits...), last, m.ListDone, nil
+	return append([]Value{}, m.ListHits...), last, m.ListDone, nil
 }
 
 func (m *Mock) Import(_ context.Context, items []json.RawMessage) (int64, json.RawMessage, error) {
@@ -137,7 +137,7 @@ func (m *Mock) ImportInfo(_ context.Context, taskID int64) ([]ImportRow, json.Ra
 	if m.InfoErr != nil {
 		return nil, nil, m.InfoErr
 	}
-	rows := append([]ImportRow(nil), m.Info[taskID]...)
+	rows := append([]ImportRow{}, m.Info[taskID]...)
 	raw, _ := json.Marshal(map[string]any{"result": map[string]any{"items": rows}})
 	return rows, raw, nil
 }
@@ -194,6 +194,9 @@ func (c *HTTPClient) Attributes(ctx context.Context, categoryID, typeID int64, l
 	}
 	if err := json.Unmarshal(raw, &wrap); err != nil {
 		return nil, err
+	}
+	if wrap.Result == nil {
+		return []Attribute{}, nil
 	}
 	return wrap.Result, nil
 }
@@ -362,6 +365,9 @@ func decodeValues(raw []byte) ([]Value, error) {
 	}
 	if err := json.Unmarshal(raw, &wrap); err != nil {
 		return nil, err
+	}
+	if wrap.Result == nil {
+		return []Value{}, nil
 	}
 	return wrap.Result, nil
 }

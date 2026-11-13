@@ -93,7 +93,7 @@ func (e *Engine) UpdateProduct(ctx context.Context, id int64, patch ProductPatch
 }
 
 func (e *Engine) ValidateProducts(ctx context.Context, ids []int64) ([]domain.Product, error) {
-	var out []domain.Product
+	out := make([]domain.Product, 0)
 	err := e.DB.InTx(ctx, func(tx store.Tx) error {
 		for _, id := range ids {
 			row, err := tx.GetProduct(store.ForUpdate(ctx), id)

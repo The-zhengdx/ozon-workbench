@@ -115,7 +115,7 @@ func (t *pgTx) ListShops(ctx context.Context) ([]domain.Shop, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	var out []domain.Shop
+	out := make([]domain.Shop, 0)
 	for rows.Next() {
 		shop, err := scanShop(rows)
 		if err != nil {
@@ -275,7 +275,7 @@ func (t *pgTx) ListDict(ctx context.Context, q domain.DictQuery) ([]domain.DictV
 		return nil, err
 	}
 	defer rows.Close()
-	var out []domain.DictValue
+	out := make([]domain.DictValue, 0)
 	for rows.Next() {
 		var row domain.DictValue
 		if err := rows.Scan(&row.ShopID, &row.DescriptionCategoryID, &row.TypeID, &row.AttributeID, &row.Language, &row.ValueID, &row.ValueText, &row.Info, &row.Picture, &row.Source, &row.FetchedAt); err != nil {
@@ -442,7 +442,7 @@ func (t *pgTx) ListTasks(ctx context.Context, f domain.TaskFilter) ([]domain.Tas
 		return nil, err
 	}
 	defer rows.Close()
-	var out []domain.Task
+	out := make([]domain.Task, 0)
 	for rows.Next() {
 		task, err := scanTask(rows)
 		if err != nil {
@@ -556,7 +556,7 @@ func (t *pgTx) ListTurns(ctx context.Context, taskID int64) ([]domain.Turn, erro
 		return nil, err
 	}
 	defer rows.Close()
-	var out []domain.Turn
+	out := make([]domain.Turn, 0)
 	for rows.Next() {
 		turn, err := scanTurn(rows)
 		if err != nil {
@@ -627,7 +627,7 @@ func (t *pgTx) queryMessages(ctx context.Context, q string, args ...any) ([]doma
 		return nil, err
 	}
 	defer rows.Close()
-	var out []domain.Message
+	out := make([]domain.Message, 0)
 	for rows.Next() {
 		msg, err := scanMessage(rows)
 		if err != nil {
@@ -660,7 +660,7 @@ func (t *pgTx) ListAssets(ctx context.Context, taskID int64) ([]domain.Asset, er
 		return nil, err
 	}
 	defer rows.Close()
-	var out []domain.Asset
+	out := make([]domain.Asset, 0)
 	for rows.Next() {
 		var asset domain.Asset
 		var key, url, mime, errMsg *string

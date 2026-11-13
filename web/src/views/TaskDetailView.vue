@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useRoute } from "vue-router";
 
 import { http, type Task } from "../api/client";
+import { asList } from "../api/lists";
 
 const route = useRoute();
 const task = ref<Task | null>(null);
 const messages = ref<any[]>([]);
+const messageRows = computed(() => asList(messages.value));
 const content = ref("");
 const error = ref("");
 let timer = 0;
@@ -14,7 +16,7 @@ let timer = 0;
 async function load() {
   const id = route.params.id;
   task.value = (await http.get<Task>(`/api/processing-tasks/${id}`)).data;
-  messages.value = (await http.get(`/api/processing-tasks/${id}/messages`)).data;
+  messages.value = asList((await http.get(`/api/processing-tasks/${id}/messages`)).data);
 }
 
 onMounted(() => {
@@ -61,11 +63,11 @@ async function retry() {
       </div>
     </div>
     <div class="panel block">
-      <article v-for="message in messages" :key="message.id" class="message">
+      <article v-for="message in messageRows" :key="message.id" class="message">
         <header><b>{{ message.role }} · {{ message.kind }}</b><span>{{ message.delivery_status }}</span></header>
         <pre>{{ message.content }}</pre>
       </article>
-      <p v-if="!messages.length" class="empty">这一轮还没有业务消息</p>
+      <p v-if="!messageRows.length" class="empty">这一轮还没有业务消息</p>
     </div>
     <form class="panel block stack" @submit.prevent="send">
       <textarea v-model="content" class="prompt" rows="4" placeholder="补充要求"></textarea>

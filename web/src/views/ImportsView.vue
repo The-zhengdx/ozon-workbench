@@ -1,22 +1,25 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 
 import { http } from "../api/client";
+import { asList } from "../api/lists";
 import { useShopStore } from "../stores/shop";
 
 const shop = useShopStore();
 const batches = ref<any[]>([]);
+const batchRows = computed(() => asList(batches.value));
 const items = ref<any[]>([]);
+const itemRows = computed(() => asList(items.value));
 const current = ref<number | null>(null);
 const error = ref("");
 
 async function load() {
-  batches.value = (await http.get("/api/import-batches", { params: { shop_id: shop.currentShopId || undefined } })).data;
+  batches.value = asList((await http.get("/api/import-batches", { params: { shop_id: shop.currentShopId || undefined } })).data);
 }
 
 async function open(id: number) {
   current.value = id;
-  items.value = (await http.get(`/api/import-batches/${id}/items`)).data;
+  items.value = asList((await http.get(`/api/import-batches/${id}/items`)).data);
 }
 
 async function refresh(id: number) {
@@ -40,7 +43,7 @@ watch(() => shop.currentShopId, () => load().catch(() => undefined));
     <table>
       <thead><tr><th>批次</th><th>Ozon task</th><th>状态</th><th></th></tr></thead>
       <tbody>
-        <tr v-for="batch in batches" :key="batch.id">
+        <tr v-for="batch in batchRows" :key="batch.id">
           <td class="mono">{{ batch.id }}</td>
           <td class="mono">{{ batch.ozon_task_id || "—" }}</td>
           <td>{{ batch.status }}</td>
@@ -56,7 +59,7 @@ watch(() => shop.currentShopId, () => load().catch(() => undefined));
     <table>
       <thead><tr><th>SKU</th><th>提交版本</th><th>结果</th></tr></thead>
       <tbody>
-        <tr v-for="item in items" :key="item.id">
+        <tr v-for="item in itemRows" :key="item.id">
           <td class="mono">{{ item.offer_id }}</td>
           <td>{{ item.submitted_revision }}</td>
           <td>{{ item.status }}</td>

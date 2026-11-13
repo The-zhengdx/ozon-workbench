@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 
 import { http, type Shop } from "../api/client";
+import { asList } from "../api/lists";
 import { useShopStore } from "../stores/shop";
 
 const shop = useShopStore();
+const shops = computed(() => asList(shop.list));
 const form = reactive({ name: "", client_id: "", api_key: "" });
 const error = ref("");
 
@@ -45,7 +47,7 @@ async function toggle(item: Shop) {
           <tr><th>名称</th><th>Client ID</th><th>API Key</th><th>币种</th><th>VAT</th><th>状态</th><th></th></tr>
         </thead>
         <tbody>
-          <tr v-for="item in shop.shops" :key="item.id">
+          <tr v-for="item in shops" :key="item.id">
             <td>{{ item.name }}</td>
             <td class="mono">{{ item.client_id }}</td>
             <td class="mono">{{ item.api_key }}</td>
@@ -54,7 +56,7 @@ async function toggle(item: Shop) {
             <td><span class="status" :class="item.enable ? 'ok' : 'bad'">{{ item.enable ? "启用" : "停用" }}</span></td>
             <td><button class="ghost" type="button" @click="toggle(item)">{{ item.enable ? "停用" : "启用" }}</button></td>
           </tr>
-          <tr v-if="!shop.shops.length"><td colspan="7" class="empty">还没有店铺</td></tr>
+          <tr v-if="!shops.length"><td colspan="7" class="empty">还没有店铺</td></tr>
         </tbody>
       </table>
     </div>
