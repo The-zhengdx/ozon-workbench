@@ -1,0 +1,53 @@
+{
+  "schema_version": "1.2",
+  "status": "pending_review",
+  "stage": "copy",
+  "message": "俄文标题和初步特征已生成，请审核。",
+  "questions": [],
+  "review": {
+    "kind": "copy",
+    "summary": "请检查标题与属性提取是否准确"
+  },
+  "data": {
+    "products": [
+      {
+        "sku_ref": "CAR001-GY",
+        "offer_id_suggestion": "CAR001-GY",
+        "variant_label": "深空灰",
+        "name": "Магнитный держатель для телефона",
+        "cost": {
+          "purchase_price": 20.0,
+          "domestic_shipping": 2.0,
+          "total": 22.0,
+          "currency": "CNY",
+          "evidence": "用户补充国内运费，采购价来自素材"
+        },
+        "primary_image": null,
+        "images": [],
+        "color_image": null,
+        "dimensions": {
+          "depth": 120,
+          "width": 65,
+          "height": 90,
+          "dimension_unit": "mm",
+          "weight": 180,
+          "weight_unit": "g"
+        },
+        "attributes": [
+          {
+            "id": 10096,
+            "complex_id": 0,
+            "value_text": "серый",
+            "dictionary_value_id": null,
+            "evidence": "商品规格中的深空灰色"
+          }
+        ],
+        "complex_attributes": []
+      }
+    ],
+    "visual_plan": [],
+    "media": [],
+    "warnings": []
+  },
+  "error": null
+}
