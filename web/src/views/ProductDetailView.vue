@@ -3,6 +3,7 @@ import { onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
 
 import { http, type Product } from "../api/client";
+import { productPatchBody } from "../api/payloads";
 
 const route = useRoute();
 const row = ref<Product | null>(null);
@@ -21,7 +22,7 @@ onMounted(() => load().catch((err: Error) => (error.value = err.message)));
 async function save() {
   error.value = "";
   try {
-    row.value = (await http.patch(`/api/products/${route.params.id}`, { name: name.value, price: price.value })).data;
+    row.value = (await http.patch(`/api/products/${route.params.id}`, productPatchBody(name.value, price.value))).data;
   } catch (err) {
     error.value = err instanceof Error ? err.message : "保存失败";
   }

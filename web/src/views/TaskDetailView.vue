@@ -4,6 +4,7 @@ import { useRoute } from "vue-router";
 
 import { http, type Task } from "../api/client";
 import { asList } from "../api/lists";
+import { messageBody, reviewBody } from "../api/payloads";
 
 const route = useRoute();
 const task = ref<Task | null>(null);
@@ -26,13 +27,13 @@ onMounted(() => {
 onUnmounted(() => window.clearInterval(timer));
 
 async function send() {
-  await http.post(`/api/processing-tasks/${route.params.id}/messages`, { content: content.value });
+  await http.post(`/api/processing-tasks/${route.params.id}/messages`, messageBody(content.value));
   content.value = "";
   await load();
 }
 
 async function review(kind: string, decision: string) {
-  await http.post(`/api/processing-tasks/${route.params.id}/review`, { kind, decision, note: "" });
+  await http.post(`/api/processing-tasks/${route.params.id}/review`, reviewBody(kind, decision));
   await load();
 }
 

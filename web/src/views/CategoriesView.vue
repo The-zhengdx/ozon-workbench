@@ -3,6 +3,7 @@ import { computed, ref } from "vue";
 
 import { http } from "../api/client";
 import { asList } from "../api/lists";
+import { promptBody, treeSyncBody } from "../api/payloads";
 import { useShopStore } from "../stores/shop";
 
 type Hit = { description_category_id: number; category_name: string; type_id: number; type_name: string };
@@ -31,7 +32,7 @@ async function sync() {
     return;
   }
   try {
-    await http.post("/api/categories/tree/sync", { shop_id: shopId.value, language: language.value });
+    await http.post("/api/categories/tree/sync", treeSyncBody(shopId.value, language.value));
     await search();
     message.value = "类目树已更新";
   } catch (err) {
@@ -63,10 +64,7 @@ async function open(hit: Hit) {
 
 async function save() {
   if (!selected.value) return;
-  const rule = (await http.put(`/api/category-rules/${selected.value.description_category_id}/${selected.value.type_id}`, {
-    prompt: prompt.value,
-    enabled: enabled.value,
-  })).data;
+  const rule = (await http.put(`/api/category-rules/${selected.value.description_category_id}/${selected.value.type_id}`, promptBody(prompt.value, enabled.value))).data;
   version.value = rule.version;
   message.value = `已保存，版本 ${rule.version}`;
 }
