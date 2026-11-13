@@ -10,12 +10,11 @@ WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-COPY --from=web /src/web/dist ./internal/server/webdist
+COPY --from=web /src/web/dist ./internal/httpapi/web
 RUN CGO_ENABLED=0 go build -o /out/ozon-workbench ./cmd/server
 
 FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
 COPY --from=build /out/ozon-workbench /usr/local/bin/ozon-workbench
-COPY configs/config.yaml /configs/config.yaml
 EXPOSE 18081
-ENTRYPOINT ["/usr/local/bin/ozon-workbench", "-conf", "/configs/config.yaml"]
+ENTRYPOINT ["/usr/local/bin/ozon-workbench"]

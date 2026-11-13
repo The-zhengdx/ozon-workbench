@@ -1,0 +1,29 @@
+{
+  "schema_version": "1.2",
+  "status": "pending_review",
+  "stage": "visual",
+  "message": "视觉方案已生成，请审核后再开始图片/视频生成。",
+  "questions": [],
+  "review": {
+    "kind": "visual_plan",
+    "summary": "确认主图、副图及视频的场景与风格"
+  },
+  "data": {
+    "products": [],
+    "visual_plan": [
+      {
+        "kind": "primary",
+        "count": 1,
+        "instructions": "主图保持原商品结构与颜色"
+      },
+      {
+        "kind": "detail",
+        "count": 2,
+        "instructions": "生成金属材质及磁吸结构细节图"
+      }
+    ],
+    "media": [],
+    "warnings": []
+  },
+  "error": null
+}

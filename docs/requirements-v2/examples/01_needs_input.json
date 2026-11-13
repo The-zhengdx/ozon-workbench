@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.2",
+  "status": "needs_input",
+  "stage": "extract",
+  "message": "没有找到单件国内运费，需要补充后才能确认完整成本。",
+  "questions": [
+    {
+      "field": "cost.domestic_shipping",
+      "text": "请提供每件商品到货代仓库的国内运费（CNY）。",
+      "required": true
+    }
+  ],
+  "review": null,
+  "data": {
+    "products": [],
+    "visual_plan": [],
+    "media": [],
+    "warnings": []
+  },
+  "error": null
+}

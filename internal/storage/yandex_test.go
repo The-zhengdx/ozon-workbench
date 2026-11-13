@@ -16,7 +16,7 @@ func TestNoneRefusesUpload(t *testing.T) {
 	if !Unconfigured(err) {
 		t.Fatalf("err %v", err)
 	}
-	store, err := Open(nil)
+	store, err := FromConfig(Config{})
 	if err != nil || store.Configured() || store.Name() != "none" {
 		t.Fatalf("open %#v %v", store, err)
 	}

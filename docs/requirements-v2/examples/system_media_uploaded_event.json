@@ -1,0 +1,24 @@
+{
+  "event": "media_uploaded",
+  "task_id": 1001,
+  "media": [
+    {
+      "asset_id": "a-main-001",
+      "sku_ref": "CAR001-GY",
+      "role": "primary",
+      "url": "https://cdn.example.com/task-1001/a-main-001.png"
+    },
+    {
+      "asset_id": "a-detail-001",
+      "sku_ref": "CAR001-GY",
+      "role": "detail",
+      "url": "https://cdn.example.com/task-1001/a-detail-001.png"
+    },
+    {
+      "asset_id": "a-video-001",
+      "sku_ref": "CAR001-GY",
+      "role": "video",
+      "url": "https://cdn.example.com/task-1001/a-video-001.mp4"
+    }
+  ]
+}

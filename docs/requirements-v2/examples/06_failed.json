@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.2",
+  "status": "failed",
+  "stage": "visual",
+  "message": "视觉生成工具返回错误，当前无法完成。",
+  "questions": [],
+  "review": null,
+  "data": {
+    "products": [],
+    "visual_plan": [],
+    "media": [],
+    "warnings": []
+  },
+  "error": {
+    "code": "MEDIA_TOOL_ERROR",
+    "message": "视频生成服务超时",
+    "retryable": true
+  }
+}

@@ -65,6 +65,16 @@ func (m *Mock) Delete(_ context.Context, key string) error {
 	return nil
 }
 
+func (m *Mock) Files() map[string]Object {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := make(map[string]Object, len(m.files))
+	for key, obj := range m.files {
+		out[key] = obj
+	}
+	return out
+}
+
 func (m *Mock) Refresh(_ context.Context, publicKey string) (string, error) {
 	key := strings.TrimPrefix(publicKey, "mock:")
 	m.mu.Lock()

@@ -1,181 +1,62 @@
 <script setup lang="ts">
-import { reactive, ref } from "vue";
+import { onMounted, reactive, ref } from "vue";
 
-import { apiError } from "../api/http";
-import { archiveShop, createShop, restoreShop, testShop, updateShop } from "../api/workbench";
-import type { Shop } from "../api/types";
+import { http, type Shop } from "../api/client";
 import { useShopStore } from "../stores/shop";
-import { useToastStore } from "../stores/toast";
 
 const shop = useShopStore();
-const toast = useToastStore();
-
-const open = ref(false);
-const saving = ref(false);
-const editing = ref<Shop | null>(null);
-const fields = ref<Record<string, string>>({});
 const form = reactive({ name: "", client_id: "", api_key: "" });
+const error = ref("");
 
-function startCreate() {
-  editing.value = null;
-  form.name = "";
-  form.client_id = "";
-  form.api_key = "";
-  fields.value = {};
-  open.value = true;
-}
+onMounted(() => shop.load().catch((err: Error) => (error.value = err.message)));
 
-function startEdit(row: Shop) {
-  editing.value = row;
-  form.name = row.name;
-  form.client_id = row.client_id;
-  form.api_key = "";
-  fields.value = {};
-  open.value = true;
-}
-
-async function save() {
-  saving.value = true;
-  fields.value = {};
+async function create() {
+  error.value = "";
   try {
-    const body = { name: form.name, client_id: form.client_id, api_key: form.api_key };
-    const result = editing.value ? await updateShop(editing.value.id, body) : await createShop(body);
-    shop.replace(result.shop);
-    if (!editing.value || !shop.currentShopId) shop.applyCurrent(result.shop.id);
-    open.value = false;
-    toast.show(result.connection ? result.connection.message : "店铺资料已保存");
-  } catch (error) {
-    const parsed = apiError(error);
-    fields.value = parsed.fields ?? {};
-    if (!parsed.fields || !Object.keys(parsed.fields).length) toast.show(parsed.message);
-    return Promise.reject(parsed.message);
-  } finally {
-    saving.value = false;
+    await http.post("/api/shops", form);
+    form.name = "";
+    form.client_id = "";
+    form.api_key = "";
+    await shop.load();
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : "保存失败";
   }
 }
 
-async function test(row: Shop) {
-  try {
-    const result = await testShop(row.id);
-    shop.replace(result.shop);
-    toast.show(result.connection?.message || "连接完成");
-  } catch (error) {
-    toast.show(apiError(error).message);
-  }
-}
-
-async function useShop(row: Shop) {
-  await shop.select(row.id);
-  toast.show(`已切换到「${row.name}」`);
-}
-
-async function archive(row: Shop) {
-  try {
-    const updated = await archiveShop(row.id);
-    shop.replace(updated);
-    toast.show(`已从切换器移除「${row.name}」`);
-  } catch (error) {
-    toast.show(apiError(error).message);
-  }
-}
-
-async function restore(row: Shop) {
-  try {
-    const updated = await restoreShop(row.id);
-    shop.replace(updated);
-    toast.show(`已恢复「${row.name}」`);
-  } catch (error) {
-    toast.show(apiError(error).message);
-  }
-}
-
-function when(value: string | null) {
-  if (!value) return "";
-  return new Date(value).toLocaleString("zh-CN", { hour12: false });
+async function toggle(item: Shop) {
+  await http.patch(`/api/shops/${item.id}`, { enable: !item.enable });
+  await shop.load();
 }
 </script>
 
 <template>
-  <section class="panel block">
-    <div class="between">
-      <h3>店铺凭证</h3>
-      <a-button type="primary" @click="startCreate">新增店铺</a-button>
+  <p v-if="error" class="error">{{ error }}</p>
+  <div class="stack">
+    <form class="panel block form-grid" @submit.prevent="create">
+      <label class="field">名称<input v-model="form.name" required /></label>
+      <label class="field">Client ID<input v-model="form.client_id" required /></label>
+      <label class="field wide">API Key<input v-model="form.api_key" required type="password" /></label>
+      <div class="wide"><button class="primary" type="submit">添加店铺</button></div>
+      <p class="muted wide">币种默认 CNY，VAT 默认 0.1，启用默认打开。这些可以之后修改，不会增加第 10 个字段。</p>
+    </form>
+    <div class="panel tablewrap">
+      <table>
+        <thead>
+          <tr><th>名称</th><th>Client ID</th><th>API Key</th><th>币种</th><th>VAT</th><th>状态</th><th></th></tr>
+        </thead>
+        <tbody>
+          <tr v-for="item in shop.shops" :key="item.id">
+            <td>{{ item.name }}</td>
+            <td class="mono">{{ item.client_id }}</td>
+            <td class="mono">{{ item.api_key }}</td>
+            <td>{{ item.currency_code }}</td>
+            <td>{{ item.vat }}</td>
+            <td><span class="status" :class="item.enable ? 'ok' : 'bad'">{{ item.enable ? "启用" : "停用" }}</span></td>
+            <td><button class="ghost" type="button" @click="toggle(item)">{{ item.enable ? "停用" : "启用" }}</button></td>
+          </tr>
+          <tr v-if="!shop.shops.length"><td colspan="7" class="empty">还没有店铺</td></tr>
+        </tbody>
+      </table>
     </div>
-    <div v-if="shop.loading" class="empty">正在读取店铺…</div>
-    <div v-else-if="shop.error" class="error" style="margin-top: 14px">{{ shop.error }}</div>
-    <div v-else-if="!shop.shops.length" class="empty">还没有店铺。新增时只需名称、Client ID 和 API Key，币种保持未知。</div>
-    <div v-else>
-      <div v-for="row in shop.shops" :key="row.id" class="listitem between" style="align-items: flex-start">
-        <div class="min-w-0">
-          <b>{{ row.name }}</b>
-          <div class="sub">
-            Client ID {{ row.client_id }} · API Key {{ row.api_key_configured ? "已配置" : "待配置" }}
-            · 币种 {{ row.currency_code || "未知" }}
-            <template v-if="row.last_tested_at"> · 最近测试 {{ when(row.last_tested_at) }}</template>
-          </div>
-          <div v-if="row.last_test_message" class="sub" :class="{ error: row.last_test_ok === false }" style="margin-top: 8px">
-            {{ row.last_test_message }}
-          </div>
-          <div v-if="row.warehouses_mock" class="sub" style="margin-top: 8px">模拟仓库，不是该店铺在 Ozon 上的真实仓库。只有服务处于模拟模式时才会出现。</div>
-          <div v-else-if="row.warehouses.length && row.last_test_ok === false" class="sub" style="margin-top: 8px">
-            以下是上次成功同步的仓库<span v-if="row.warehouses_synced_at">（{{ when(row.warehouses_synced_at) }}）</span>，本次连接没有更新。
-          </div>
-          <div v-else-if="row.warehouses.length && row.warehouses_synced_at" class="sub" style="margin-top: 8px">
-            仓库同步于 {{ when(row.warehouses_synced_at) }}
-          </div>
-          <div v-if="row.warehouses.length" class="chips">
-            <span v-for="warehouse in row.warehouses" :key="warehouse.warehouse_id" class="chip" :class="{ warm: row.warehouses_mock }">
-              <template v-if="row.warehouses_mock">模拟 · </template>{{ warehouse.name }} · {{ warehouse.warehouse_id }}
-            </span>
-          </div>
-          <div v-else class="sub">仓库尚未同步。</div>
-        </div>
-        <div class="miniActions">
-          <a-button size="small" @click="startEdit(row)">编辑凭证</a-button>
-          <a-button size="small" @click="test(row)">测试连接</a-button>
-          <span v-if="!row.archived && shop.currentShopId === row.id" class="status ready">当前店铺</span>
-          <a-button v-else-if="!row.archived" size="small" @click="useShop(row)">切换</a-button>
-          <a-button v-if="row.archived" size="small" @click="restore(row)">恢复店铺</a-button>
-          <a-popconfirm v-else title="从切换器移除该店铺？可以稍后恢复。" ok-text="移除" cancel-text="取消" @confirm="archive(row)">
-            <a-button size="small">移除</a-button>
-          </a-popconfirm>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <a-modal
-    v-model:open="open"
-    :title="editing ? '编辑店铺凭证' : '新增店铺'"
-    :confirm-loading="saving"
-    ok-text="保存店铺"
-    cancel-text="取消"
-    @ok="save"
-  >
-    <div class="stack">
-      <label class="field">
-        店铺名称
-        <a-input v-model:value="form.name" :status="fields.name ? 'error' : ''" />
-        <span v-if="fields.name" class="error">{{ fields.name }}</span>
-      </label>
-      <label class="field">
-        Client ID
-        <a-input v-model:value="form.client_id" autocomplete="off" :status="fields.client_id ? 'error' : ''" />
-        <span v-if="fields.client_id" class="error">{{ fields.client_id }}</span>
-      </label>
-      <label class="field">
-        API Key
-        <a-input-password
-          v-model:value="form.api_key"
-          autocomplete="new-password"
-          :placeholder="editing?.api_key_configured ? '留空沿用已有密钥' : '填写店铺 API Key'"
-          :status="fields.api_key ? 'error' : ''"
-        />
-        <span v-if="fields.api_key" class="error">{{ fields.api_key }}</span>
-      </label>
-      <div class="sub">密钥只在后端加密保存。列表和后续任务只显示「已配置 / 待配置」，编辑时不会回显原值。新增店铺不选择币种，系统也不会预填 RUB 或 CNY。</div>
-      <div class="sub">只有顶部显示「模拟模式」时，测试连接才会写入示例仓库（莫斯科一号仓等），并标明「模拟」。真实模式下失败不会把这些示例当成店铺仓库；上次真正同步成功的仓库会保留，并标出同步时间。</div>
-      <div class="sub">模拟模式下，API Key 填 <span class="mono">invalid</span> 会返回 Ozon 的鉴权错误，其它非空密钥可以同步示例仓库。</div>
-    </div>
-  </a-modal>
+  </div>
 </template>

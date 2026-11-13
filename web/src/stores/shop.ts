@@ -1,87 +1,31 @@
 import { defineStore } from "pinia";
 
-import { currentShopId } from "../api/http";
-import { fetchMeta, listShops, setDefaultShop } from "../api/workbench";
-import type { Shop } from "../api/types";
+import { http, type Shop } from "../api/client";
 
-const STORAGE_KEY = "ozon.currentShopId";
+const key = "ozon.currentShopId";
 
 export const useShopStore = defineStore("shop", {
   state: () => ({
     shops: [] as Shop[],
     currentShopId: null as number | null,
-    mock: false,
-    proxy: "direct",
-    codexMock: true,
-    storageProvider: "none",
-    storageConfigured: false,
-    loading: false,
-    error: "",
+    loaded: false,
   }),
   getters: {
-    activeShops(state): Shop[] {
-      return state.shops.filter((shop) => !shop.archived);
-    },
-    current(state): Shop | undefined {
-      return state.shops.find((shop) => shop.id === state.currentShopId && !shop.archived);
-    },
-    proxyLabel(state): string {
-      if (!state.proxy || state.proxy === "direct") return "直连（忽略 HTTP_PROXY）";
-      if (state.proxy === "env") return "代理跟随环境变量";
-      return `代理 ${state.proxy}`;
-    },
+    current: (state) => state.shops.find((shop) => shop.id === state.currentShopId) ?? null,
+    enabled: (state) => state.shops.filter((shop) => shop.enable),
   },
   actions: {
     async load() {
-      this.loading = true;
-      this.error = "";
-      try {
-        const [shops, meta] = await Promise.all([listShops(), fetchMeta()]);
-        this.shops = shops;
-        this.mock = meta.mock;
-        this.proxy = meta.proxy || "direct";
-        this.codexMock = meta.codex_mock !== false;
-        this.storageProvider = meta.storage_provider || "none";
-        this.storageConfigured = meta.storage_configured === true;
-        this.ensureCurrent();
-      } catch (error) {
-        this.error = error instanceof Error ? error.message : "店铺列表加载失败";
-      } finally {
-        this.loading = false;
-      }
+      const { data } = await http.get<Shop[]>("/api/shops");
+      this.shops = data;
+      const saved = Number(localStorage.getItem(key) || "");
+      const found = data.find((shop) => shop.id === saved);
+      this.currentShopId = found?.id ?? data.find((shop) => shop.enable)?.id ?? data[0]?.id ?? null;
+      this.loaded = true;
     },
-    ensureCurrent() {
-      const saved = Number(localStorage.getItem(STORAGE_KEY) || 0);
-      const active = this.activeShops;
-      const chosen =
-        active.find((shop) => shop.id === saved) ??
-        active.find((shop) => shop.is_default) ??
-        active[0];
-      this.applyCurrent(chosen?.id ?? null);
-    },
-    applyCurrent(id: number | null) {
+    select(id: number) {
       this.currentShopId = id;
-      currentShopId.value = id;
-      if (id) localStorage.setItem(STORAGE_KEY, String(id));
-      else localStorage.removeItem(STORAGE_KEY);
-    },
-    async select(id: number) {
-      const shop = this.shops.find((item) => item.id === id && !item.archived);
-      if (!shop) return;
-      this.applyCurrent(id);
-      try {
-        const updated = await setDefaultShop(id);
-        this.shops = this.shops.map((item) => ({ ...item, is_default: item.id === updated.id }));
-      } catch {
-        // The header still carries the selection even if persisting the default fails.
-      }
-    },
-    replace(shop: Shop) {
-      const index = this.shops.findIndex((item) => item.id === shop.id);
-      if (index >= 0) this.shops.splice(index, 1, shop);
-      else this.shops.push(shop);
-      if (!this.current && !shop.archived) this.applyCurrent(shop.id);
-      if (this.currentShopId === shop.id && shop.archived) this.ensureCurrent();
+      localStorage.setItem(key, String(id));
     },
   },
 });

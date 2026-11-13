@@ -1,0 +1,447 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Ozon Codex Business Reply V1.2",
+  "description": "Each Codex CLI turn outputs this final application-level JSON. State-specific invariants are checked by backend.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "enum": [
+        "1.2"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "needs_input",
+        "pending_review",
+        "media_ready",
+        "completed",
+        "failed"
+      ]
+    },
+    "stage": {
+      "type": "string",
+      "enum": [
+        "extract",
+        "copy",
+        "visual",
+        "delivery"
+      ]
+    },
+    "message": {
+      "type": "string"
+    },
+    "questions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "field": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "field",
+          "text",
+          "required"
+        ]
+      }
+    },
+    "review": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "copy",
+            "visual_plan",
+            "visual_result",
+            "final"
+          ]
+        },
+        "summary": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "summary"
+      ]
+    },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "products": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "sku_ref": {
+                "type": "string"
+              },
+              "offer_id_suggestion": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "variant_label": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "cost": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "purchase_price": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "domestic_shipping": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "total": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "currency": {
+                    "type": "string",
+                    "enum": [
+                      "CNY"
+                    ]
+                  },
+                  "evidence": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "purchase_price",
+                  "domestic_shipping",
+                  "total",
+                  "currency",
+                  "evidence"
+                ]
+              },
+              "primary_image": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "images": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "color_image": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "dimensions": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "depth": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  },
+                  "width": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  },
+                  "height": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  },
+                  "dimension_unit": {
+                    "type": "string",
+                    "enum": [
+                      "mm"
+                    ]
+                  },
+                  "weight": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  },
+                  "weight_unit": {
+                    "type": "string",
+                    "enum": [
+                      "g"
+                    ]
+                  }
+                },
+                "required": [
+                  "depth",
+                  "width",
+                  "height",
+                  "dimension_unit",
+                  "weight",
+                  "weight_unit"
+                ]
+              },
+              "attributes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "complex_id": {
+                      "type": "integer"
+                    },
+                    "value_text": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "dictionary_value_id": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "evidence": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "complex_id",
+                    "value_text",
+                    "dictionary_value_id",
+                    "evidence"
+                  ]
+                }
+              },
+              "complex_attributes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "complex_id": {
+                      "type": "integer"
+                    },
+                    "values": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "value": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "dictionary_value_id": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "value",
+                          "dictionary_value_id"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "complex_id",
+                    "values"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "sku_ref",
+              "offer_id_suggestion",
+              "variant_label",
+              "name",
+              "cost",
+              "primary_image",
+              "images",
+              "color_image",
+              "dimensions",
+              "attributes",
+              "complex_attributes"
+            ]
+          }
+        },
+        "visual_plan": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "primary",
+                  "detail",
+                  "lifestyle",
+                  "infographic",
+                  "color",
+                  "video",
+                  "other"
+                ]
+              },
+              "count": {
+                "type": "integer"
+              },
+              "instructions": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind",
+              "count",
+              "instructions"
+            ]
+          }
+        },
+        "media": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "asset_id": {
+                "type": "string"
+              },
+              "sku_ref": {
+                "type": "string"
+              },
+              "role": {
+                "type": "string",
+                "enum": [
+                  "primary",
+                  "detail",
+                  "lifestyle",
+                  "infographic",
+                  "color",
+                  "video",
+                  "other"
+                ]
+              },
+              "file_path": {
+                "type": "string"
+              },
+              "mime_type": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "asset_id",
+              "sku_ref",
+              "role",
+              "file_path",
+              "mime_type"
+            ]
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "products",
+        "visual_plan",
+        "media",
+        "warnings"
+      ]
+    },
+    "error": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "retryable": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "retryable"
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "status",
+    "stage",
+    "message",
+    "questions",
+    "review",
+    "data",
+    "error"
+  ]
+}
